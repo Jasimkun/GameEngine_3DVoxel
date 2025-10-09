@@ -4,11 +4,12 @@ using System.Collections;
 public class VoxelCollapse : MonoBehaviour
 {
     // === 설정 변수 ===
+    // 'public'으로 설정되어야 PlayerTileDetector에서 이 값을 변경할 수 있습니다.
     public float collapseDelay = 5.0f;     // 붕괴 시작까지의 대기 시간
     public float fadeOutDuration = 1.0f;   // 완전히 투명해지는 데 걸리는 시간
 
     // === 상태 변수 ===
-    // [HideInInspector]를 사용하면 Inspector 창에서 이 변수를 숨길 수 있습니다.
+    // 타일이 붕괴 과정 중인지 확인 (외부 스크립트 접근 가능)
     [HideInInspector] public bool isCollapsing = false;
 
     // === 내부 컴포넌트 ===
@@ -26,7 +27,7 @@ public class VoxelCollapse : MonoBehaviour
             tileRigidbody = gameObject.AddComponent<Rigidbody>();
         }
 
-        // 타일이 물리적 벽 역할을 하도록 설정
+        // 타일이 물리적 벽 역할을 하도록 'Kinematic'으로 고정
         tileRigidbody.isKinematic = true;
         tileRigidbody.useGravity = false;
     }
@@ -42,13 +43,13 @@ public class VoxelCollapse : MonoBehaviour
         }
     }
 
-    // 5초를 기다리는 코루틴
+    // 5초 (또는 변경된 시간)를 기다리는 코루틴
     IEnumerator StartCollapseWithDelay()
     {
-        // 5초 동안 대기
+        // 'collapseDelay' 변수에 저장된 시간만큼 대기
         yield return new WaitForSeconds(collapseDelay);
 
-        // 5초 후 추락 및 투명화 시작
+        // 대기 후 추락 및 투명화 시작
         StartCoroutine(FallDown());
         StartCoroutine(FadeOut());
     }
@@ -65,7 +66,7 @@ public class VoxelCollapse : MonoBehaviour
     // 타일을 서서히 투명하게 만드는 코루틴
     IEnumerator FadeOut()
     {
-        // URP 호환 코드: Material 색상(흰색)을 가져와서 알파(투명도)만 조절
+        // URP 호환 코드: Material의 기본 색상(알파 포함)을 가져옵니다.
         Color startColor = tileRenderer.material.GetColor("_BaseColor");
         float elapsedTime = 0f;
 
@@ -79,13 +80,13 @@ public class VoxelCollapse : MonoBehaviour
             Color newColor = startColor;
             newColor.a = alpha;
 
-            // URP 호환 코드: 투명도를 적용합니다.
+            // URP 호환 코드: 투명도를 Material에 적용합니다.
             tileRenderer.material.SetColor("_BaseColor", newColor);
 
             yield return null;
         }
 
-        // 완전히 사라지면 없앱니다.
+        // 완전히 사라지면 메모리에서 제거합니다.
         Destroy(gameObject);
     }
 }
