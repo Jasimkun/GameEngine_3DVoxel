@@ -1,18 +1,19 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 
 public class VoxelCollapse : MonoBehaviour
 {
-    // === ¼³Á¤ º¯¼ö ===
-    // 'public'À¸·Î ¼³Á¤µÇ¾î¾ß PlayerTileDetector¿¡¼­ ÀÌ °ªÀ» º¯°æÇÒ ¼ö ÀÖ½À´Ï´Ù.
-    public float collapseDelay = 5.0f;     // ºØ±« ½ÃÀÛ±îÁöÀÇ ´ë±â ½Ã°£
-    public float fadeOutDuration = 1.0f;   // ¿ÏÀüÈ÷ Åõ¸íÇØÁö´Â µ¥ °É¸®´Â ½Ã°£
+    // === ì„¤ì • ë³€ìˆ˜ ===
+    public float collapseDelay = 5.0f;     // ë¶•ê´´ ì‹œì‘ê¹Œì§€ì˜ ëŒ€ê¸° ì‹œê°„ (PlayerTileDetectorì—ì„œ ë³€ê²½ë¨)
+    public float fadeOutDuration = 1.0f;   // ì™„ì „íˆ íˆ¬ëª…í•´ì§€ëŠ” ë° ê±¸ë¦¬ëŠ” ì‹œê°„
 
-    // === »óÅÂ º¯¼ö ===
-    // Å¸ÀÏÀÌ ºØ±« °úÁ¤ ÁßÀÎÁö È®ÀÎ (¿ÜºÎ ½ºÅ©¸³Æ® Á¢±Ù °¡´É)
-    [HideInInspector] public bool isCollapsing = false;
+    // === ìƒíƒœ ì¶”ì  ë³€ìˆ˜ ===
+    private Coroutine collapseCoroutine; // ì§„í–‰ ì¤‘ì¸ ë¶•ê´´ ëŒ€ê¸° ì½”ë£¨í‹´ì„ ì¶”ì í•©ë‹ˆë‹¤.
 
-    // === ³»ºÎ ÄÄÆ÷³ÍÆ® ===
+    // ğŸ’¡ ìƒˆ ì†ì„±: ë¶•ê´´ ì¹´ìš´íŠ¸ë‹¤ìš´ì´ í˜„ì¬ ì§„í–‰ ì¤‘ì¸ì§€ ì™¸ë¶€ì— ì•Œë ¤ì¤ë‹ˆë‹¤.
+    public bool IsCollapseStarted => collapseCoroutine != null;
+
+    // === ë‚´ë¶€ ì»´í¬ë„ŒíŠ¸ ===
     private Renderer tileRenderer;
     private Rigidbody tileRigidbody;
 
@@ -20,73 +21,79 @@ public class VoxelCollapse : MonoBehaviour
     {
         tileRenderer = GetComponent<Renderer>();
 
-        // Rigidbody°¡ ¾øÀ¸¸é Ãß°¡ÇÏ°í °íÁ¤ÇÕ´Ï´Ù.
+        // Rigidbody ì„¤ì • (ì›ë˜ ë¡œì§ ìœ ì§€)
         tileRigidbody = GetComponent<Rigidbody>();
         if (tileRigidbody == null)
         {
             tileRigidbody = gameObject.AddComponent<Rigidbody>();
         }
-
-        // Å¸ÀÏÀÌ ¹°¸®Àû º® ¿ªÇÒÀ» ÇÏµµ·Ï 'Kinematic'À¸·Î °íÁ¤
         tileRigidbody.isKinematic = true;
         tileRigidbody.useGravity = false;
     }
 
-    // ÇÃ·¹ÀÌ¾î ½ºÅ©¸³Æ®°¡ Ãæµ¹À» °¨ÁöÇßÀ» ¶§ ÀÌ ÇÔ¼ö¸¦ È£ÃâÇÕ´Ï´Ù.
+    // í”Œë ˆì´ì–´ ìŠ¤í¬ë¦½íŠ¸ê°€ ì¶©ëŒì„ ê°ì§€í–ˆì„ ë•Œ ì´ í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•©ë‹ˆë‹¤.
     public void StartDelayedCollapse()
     {
-        // Áßº¹ È£Ãâ ¹æÁö
-        if (!isCollapsing)
+        // ì¤‘ë³µ í˜¸ì¶œ ë°©ì§€ (ì´ë¯¸ ì¹´ìš´íŠ¸ë‹¤ìš´ ì¤‘ì´ë¼ë©´ ë¬´ì‹œ)
+        if (collapseCoroutine == null)
         {
-            isCollapsing = true;
-            StartCoroutine(StartCollapseWithDelay());
+            // ë¶•ê´´ ëŒ€ê¸° ì½”ë£¨í‹´ì„ ì‹œì‘í•˜ê³  ì¶”ì í•©ë‹ˆë‹¤.
+            // ì´ ì½”ë£¨í‹´ì´ ëë‚  ë•Œê¹Œì§€ IsCollapseStartedëŠ” trueì…ë‹ˆë‹¤.
+            collapseCoroutine = StartCoroutine(StartCollapseWithDelay());
         }
     }
 
-    // 5ÃÊ (¶Ç´Â º¯°æµÈ ½Ã°£)¸¦ ±â´Ù¸®´Â ÄÚ·çÆ¾
-    IEnumerator StartCollapseWithDelay()
+    // ğŸ’¡ ìƒˆ í•¨ìˆ˜: ì™¸ë¶€(PlayerTileDetector)ì—ì„œ ë¶•ê´´ ì¹´ìš´íŠ¸ë‹¤ìš´ì„ ê°•ì œë¡œ ì¤‘ì§€í•©ë‹ˆë‹¤.
+    public void CancelCollapse()
     {
-        // 'collapseDelay' º¯¼ö¿¡ ÀúÀåµÈ ½Ã°£¸¸Å­ ´ë±â
-        yield return new WaitForSeconds(collapseDelay);
+        if (collapseCoroutine != null)
+        {
+            StopCoroutine(collapseCoroutine);
+            collapseCoroutine = null; // ì½”ë£¨í‹´ ì¤‘ì§€ í›„ ë°˜ë“œì‹œ nullë¡œ ì„¤ì •
 
-        // ´ë±â ÈÄ Ãß¶ô ¹× Åõ¸íÈ­ ½ÃÀÛ
-        StartCoroutine(FallDown());
-        StartCoroutine(FadeOut());
+            // (ì„ íƒ ì‚¬í•­) ìƒ‰ìƒ ë³µêµ¬ ë“±ì˜ ì´ˆê¸°í™” ì‘ì—…
+            // tileRenderer.material.SetColor("_BaseColor", Color.white);
+        }
     }
 
-    // Å¸ÀÏÀ» Ãß¶ô½ÃÅ°´Â ÄÚ·çÆ¾
+    // 5ì´ˆ (ë˜ëŠ” ë³€ê²½ëœ ì‹œê°„)ë¥¼ ê¸°ë‹¤ë¦¬ëŠ” ì½”ë£¨í‹´
+    IEnumerator StartCollapseWithDelay()
+    {
+        // 'collapseDelay' ë³€ìˆ˜ì— ì €ì¥ëœ ì‹œê°„ë§Œí¼ ëŒ€ê¸° (5ì´ˆ ë˜ëŠ” 20ì´ˆ)
+        yield return new WaitForSeconds(collapseDelay);
+
+        // ëŒ€ê¸° í›„ ì¶”ë½ ë° íˆ¬ëª…í™” ì‹œì‘
+        StartCoroutine(FallDown());
+        StartCoroutine(FadeOut());
+
+        collapseCoroutine = null; // ë¶•ê´´ê°€ ì‹œì‘ë˜ë©´ ëŒ€ê¸° ì½”ë£¨í‹´ì€ ëë‚¬ìœ¼ë¯€ë¡œ nullë¡œ ì„¤ì •
+    }
+
+    // íƒ€ì¼ì„ ì¶”ë½ì‹œí‚¤ëŠ” ì½”ë£¨í‹´ (ì›ë˜ ë¡œì§ ìœ ì§€)
     IEnumerator FallDown()
     {
-        // °íÁ¤À» Ç®°í Áß·ÂÀÇ ¿µÇâÀ» ¹Ş°Ô ÇÕ´Ï´Ù. (Ãß¶ô ½ÃÀÛ)
         tileRigidbody.isKinematic = false;
         tileRigidbody.useGravity = true;
         yield break;
     }
 
-    // Å¸ÀÏÀ» ¼­¼­È÷ Åõ¸íÇÏ°Ô ¸¸µå´Â ÄÚ·çÆ¾
+    // íƒ€ì¼ì„ ì„œì„œíˆ íˆ¬ëª…í•˜ê²Œ ë§Œë“œëŠ” ì½”ë£¨í‹´ (ì›ë˜ ë¡œì§ ìœ ì§€)
     IEnumerator FadeOut()
     {
-        // URP È£È¯ ÄÚµå: MaterialÀÇ ±âº» »ö»ó(¾ËÆÄ Æ÷ÇÔ)À» °¡Á®¿É´Ï´Ù.
+        // ... (ì´ì „ê³¼ ë™ì¼í•œ íˆ¬ëª…í™” ë¡œì§)
         Color startColor = tileRenderer.material.GetColor("_BaseColor");
         float elapsedTime = 0f;
 
         while (elapsedTime < fadeOutDuration)
         {
             elapsedTime += Time.deltaTime;
-
-            // ¾ËÆÄ °ªÀ» 1 (¼±¸í)¿¡¼­ 0 (Åõ¸í)À¸·Î ºÎµå·´°Ô º¸°£
             float alpha = Mathf.Lerp(1f, 0f, elapsedTime / fadeOutDuration);
-
             Color newColor = startColor;
             newColor.a = alpha;
-
-            // URP È£È¯ ÄÚµå: Åõ¸íµµ¸¦ Material¿¡ Àû¿ëÇÕ´Ï´Ù.
             tileRenderer.material.SetColor("_BaseColor", newColor);
-
             yield return null;
         }
 
-        // ¿ÏÀüÈ÷ »ç¶óÁö¸é ¸Ş¸ğ¸®¿¡¼­ Á¦°ÅÇÕ´Ï´Ù.
         Destroy(gameObject);
     }
 }

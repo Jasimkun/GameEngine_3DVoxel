@@ -2,53 +2,58 @@
 
 public class PlayerTileDetector : MonoBehaviour
 {
-    // === Q 키 붕괴 시간 변경 설정 ===
-    public float searchRadius = 5f;        // 타일 검색 반경 (5x5 영역 대신 5 유닛 반경 사용)
+    public float searchRadius = 5f;        // 타일 검색 반경
     public float newCollapseDelay = 20f;   // Q 키를 눌렀을 때 변경할 붕괴 시간
 
-    // Character Controller가 다른 오브젝트와 충돌했을 때 호출되는 특별한 함수입니다.
+    // Character Controller가 다른 오브젝트와 충돌했을 때 호출됩니다.
     void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        // 1. 충돌한 오브젝트에서 VoxelCollapse 스크립트를 찾습니다.
         VoxelCollapse tileScript = hit.gameObject.GetComponent<VoxelCollapse>();
 
-        // 2. 붕괴 가능한 타일이라면 붕괴를 시작하도록 명령합니다.
         if (tileScript != null)
         {
-            tileScript.StartDelayedCollapse();
+            // 💡 핵심 1: 붕괴가 이미 시작되지 않은 경우에만 StartDelayedCollapse()를 호출합니다.
+            // 이렇게 해야 Q 스킬로 딜레이가 20초로 변경된 타일도 밟는 순간 붕괴가 시작됩니다.
+            if (!tileScript.IsCollapseStarted)
+            {
+                // StartDelayedCollapse는 내부적으로 tileScript.collapseDelay (5초 또는 20초) 값을 사용해야 합니다.
+                tileScript.StartDelayedCollapse();
+            }
         }
     }
 
     void Update()
     {
-
         // Q 키를 눌렀을 때
         if (Input.GetKeyDown(KeyCode.Q))
         {
             SetSurroundingTileDelay(searchRadius, newCollapseDelay);
-            Debug.Log($"주변 {searchRadius}m 반경 타일의 붕괴 시간을 {newCollapseDelay}초로 변경했습니다.");
+            Debug.Log($"주변 {searchRadius}m 반경 타일의 붕괴 시간을 {newCollapseDelay}초로 변경했습니다. (밟으면 적용)");
         }
     }
 
     void SetSurroundingTileDelay(float radius, float newDelay)
     {
-        // 1. 플레이어 주변의 모든 콜라이더를 검색합니다.
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, radius);
 
-        // 2. 검색된 모든 콜라이더를 순회합니다.
         foreach (var hitCollider in hitColliders)
         {
-            // 3. 검색된 오브젝트가 붕괴 가능한 타일인지 확인합니다.
             VoxelCollapse tileScript = hitCollider.GetComponent<VoxelCollapse>();
 
-            // 4. VoxelCollapse 스크립트가 있다면 (즉, 붕괴 가능한 타일이라면)
             if (tileScript != null)
             {
-                // 5. 타일의 붕괴 시간(collapseDelay)을 새로운 시간으로 변경합니다.
+                // 1. 타일의 붕괴 시간(collapseDelay)을 새로운 시간(20초)으로 변경합니다.
                 tileScript.collapseDelay = newDelay;
 
-                // (선택 사항) 변경된 타일의 색상을 시각적으로 표시할 수 있습니다.
-                // tileScript.GetComponent<Renderer>().material.SetColor("_BaseColor", Color.blue);
+                // 2. 💡 핵심 2: 만약 붕괴가 이미 시작되었다면 (예: 5초 카운트다운 중이었다면),
+                //    그 카운트다운을 취소합니다.
+                if (tileScript.IsCollapseStarted)
+                {
+                    tileScript.CancelCollapse();
+                }
+
+                // (선택 사항: 시각적 피드백)
+                // tileScript.GetComponent<Renderer>().material.color = Color.blue;
             }
         }
     }
