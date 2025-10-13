@@ -140,6 +140,8 @@ public class Enemy : MonoBehaviour
     // 💡 Die 함수 수정: 중력으로 낙하 로직 추가
     void Die()
     {
+        // 💡 주의: 이전에 논의된 EnemyManager.UnregisterEnemy() 호출이 필요하다면 여기에 추가해야 합니다.
+
         if (suicideCoroutine != null)
         {
             StopCoroutine(suicideCoroutine);
@@ -303,9 +305,6 @@ public class Enemy : MonoBehaviour
 
     IEnumerator SuicideCountdown()
     {
-        // 💡 이 코루틴은 깜빡임 로직이 제거되고 1초 대기 로직만 남아있습니다.
-        //    (이전 단계에서 깜빡임 기능을 포기하셨기 때문에 이대로 유지합니다.)
-
         if (enemyRenderer != null)
         {
             // 빛나는 시각 효과 적용 (1회)
@@ -357,5 +356,17 @@ public class Enemy : MonoBehaviour
 
         // 마지막으로, 적을 제거합니다. (Die()가 호출되어 낙하 로직이 실행됨)
         Die();
+    }
+
+    // 💡 DeadZone에 닿았는지 확인하는 Trigger 함수
+    private void OnTriggerEnter(Collider other)
+    {
+        // DeadZone 태그를 가진 오브젝트와 충돌했는지 확인합니다.
+        if (other.CompareTag("DeadZone"))
+        {
+            Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
+            // Rigidbody의 Kinematic을 해제하여 떨어지게 하고 2초 후 최종 파괴합니다.
+            Die();
+        }
     }
 }

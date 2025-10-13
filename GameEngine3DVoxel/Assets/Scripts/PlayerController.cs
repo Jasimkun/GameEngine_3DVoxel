@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using Cinemachine;
 using UnityEngine;
@@ -8,39 +8,28 @@ using UnityEngine.UI;
 public class PlayerController : MonoBehaviour
 {
     private float speed;
-
     private float walkSpeed = 5f;
-
     private float runSpeed = 12f;
-
     private float stopSpeed = 0f;
-
     private float jumpPower = 7f;
-
     private float stopJumpPower = 0f;
 
     public CinemachineSwitcher cinemachineSwitcher;
-
     public float gravity = -9.81f;
-
     public CinemachineVirtualCamera virtualCam;
-
     public float rotationSpeed = 10f;
-
     private CinemachinePOV pov;
-
     private CharacterController controller;
-
     private Vector3 velocity;
-
     public bool isGrounded;
 
-
     public int maxHP = 100;
-
     private int currentHP;
-
     public Slider hpSlider;
+
+    // === 리스폰 설정 변수 ===
+    [Header("Respawn Settings")]
+    private Vector3 startPosition; // 💡 시작 위치만 저장
 
     // Start is called before the first frame update
     void Start()
@@ -50,11 +39,18 @@ public class PlayerController : MonoBehaviour
 
         currentHP = maxHP;
         hpSlider.value = 1f;
+
+        // 시작 위치를 저장합니다.
+        startPosition = transform.position;
+
+        // 💡 CharacterController를 사용할 경우, Rigidbody를 추가하고 Kinematic을 체크해야 
+        //    OnTriggerEnter가 안정적으로 작동합니다. (에디터에서 수동으로 추가 권장)
     }
 
-    // Update is called once per frame
+    // Update is called once per framed
     void Update()
     {
+        // === 입력 및 속도 제어 ===
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             pov.m_HorizontalAxis.Value = transform.eulerAngles.y;
@@ -82,23 +78,26 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        //����
-        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
-        {
-            velocity.y = jumpPower;
-        }
-
-
-        //���� ��� �ִ��� Ȯ��
+        // === 땅 확인 및 점프 로직 ===
         isGrounded = controller.isGrounded;
-        if (isGrounded && velocity.y < 0)
+
+        if (isGrounded)
         {
-            velocity.y = -2f;  //���鿡 ���̱�
+            if (velocity.y < 0)
+            {
+                velocity.y = -2f;  // 지면에 붙이기
+            }
+
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                velocity.y = jumpPower;
+            }
         }
+
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
-        //ī�޶� ���� ���� ���
+        // === 이동 및 회전 로직 ===
         Vector3 camForward = virtualCam.transform.forward;
         camForward.y = 0;
         camForward.Normalize();
@@ -107,18 +106,48 @@ public class PlayerController : MonoBehaviour
         camRight.y = 0;
         camRight.Normalize();
 
-        Vector3 move = (camForward * z + camRight * x).normalized;  //�̵� ���� = ī�޶� forward/right ���
+        Vector3 move = (camForward * z + camRight * x).normalized;
         controller.Move(move * speed * Time.deltaTime);
 
-        float cameraYaw = pov.m_HorizontalAxis.Value;   //���콺 �¿� ȸ����
+        float cameraYaw = pov.m_HorizontalAxis.Value;
         Quaternion targetRot = Quaternion.Euler(0f, cameraYaw, 0f);
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
 
 
+        // === 중력 적용 ===
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
 
+    // 💡 새로운 함수: Trigger 충돌 감지 (DeadZone 감지에 사용)
+    private void OnTriggerEnter(Collider other)
+    {
+        // DeadZone 태그를 가진 오브젝트와 충돌했는지 확인합니다.
+        if (other.CompareTag("DeadZone"))
+        {
+            Debug.Log("DeadZone에 진입! 즉시 리스폰합니다.");
+            Respawn();
+        }
+    }
+
+
+    // === 리스폰 함수 ===
+    void Respawn()
+    {
+        // 1. 캐릭터 컨트롤러 비활성화 및 위치 재설정
+        controller.enabled = false;
+        transform.position = startPosition;
+        controller.enabled = true;
+
+        // 2. 속도 초기화
+        velocity = Vector3.zero;
+
+        // 3. 체력 복구 (선택 사항)
+        currentHP = maxHP;
+        hpSlider.value = 1f;
+    }
+
+    // === 피해 및 사망 로직 ===
     public void TakeDamage(int damage)
     {
         currentHP -= damage;
@@ -132,6 +161,7 @@ public class PlayerController : MonoBehaviour
 
     void Die()
     {
-        Destroy(gameObject);
+        // 사망 시 리스폰 호출
+        Respawn();
     }
 }
