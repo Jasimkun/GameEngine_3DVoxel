@@ -1,53 +1,67 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class Enemy : MonoBehaviour
 {
-    public enum EnemyState { Idle, Trace, Attack, RunAway }
-
+    // === ìƒíƒœ ì—´ê±°í˜• ===
+    public enum EnemyState { Idle, Trace, Attack, RunAway, Suicide }
     public EnemyState state = EnemyState.Idle;
 
-    public float movespeed = 2f;      //ÀÌµ¿ ¼Óµµ  
+    // === ì´ë™ ë° ì¶”ì  ì„¤ì • ===
+    public float movespeed = 2f;
+    public float traceRange = 15f;
+    public float attackRange = 6f;
+    public float suicideRange = 3f;
+    public float explosionRadius = 3f;   // ğŸ’¡ ìˆ˜ì •: ìí­ ì‹œ íƒ€ì¼ íŒŒê´´ ë°˜ê²½ì„ 3më¡œ ë³€ê²½
 
-    public float traceRange = 15f;      //ÃßÀû ½ÃÀÛ °Å¸®
+    // === ìí­ ë° ê²½ê³  ì„¤ì • ===
+    public float suicideDelay = 1f;
+    public Color warningColor = Color.white;
 
-    public float attackRange = 6f;      //°ø°İ ½ÃÀÛ °Å¸®
-
+    // === ê³µê²© ì„¤ì • ===
     public float attackCooldown = 1.5f;
-
-    public GameObject projectilePrefab;     //Åõ»çÃ¼ ÇÁ¸®ÆÕ
-
-    public Transform firePoint;             //¹ß»ç À§Ä¡
+    public GameObject projectilePrefab;
+    public Transform firePoint;
 
     private float lastAttackTime;
-    public int maxHP = 5;
 
+    // === ì²´ë ¥ ì„¤ì • ===
+    public int maxHP = 5;
     public int currentHP;
 
-    private Transform player;        //ÇÃ·¹ÀÌ¾î ÃßÀû¿ë
-
+    // === ì»´í¬ë„ŒíŠ¸ ===
+    private Transform player;
     public Slider hpSlider;
+    private Renderer enemyRenderer;
+    private Color originalColor;
 
-    // Start is called before the first frame update
+    private Coroutine suicideCoroutine;
+
+
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         lastAttackTime = -attackCooldown;
         currentHP = maxHP;
         hpSlider.value = 1f;
+
+        enemyRenderer = GetComponent<Renderer>();
+        if (enemyRenderer != null)
+        {
+            originalColor = enemyRenderer.material.GetColor("_BaseColor");
+        }
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (player == null) return;
 
+        if (state == EnemyState.Suicide && suicideCoroutine != null) return;
+
         float dist = Vector3.Distance(player.position, transform.position);
 
-        //FSM »óÅÂ ÀüÈ¯
         switch (state)
         {
             case EnemyState.Idle:
@@ -60,6 +74,8 @@ public class Enemy : MonoBehaviour
             case EnemyState.Trace:
                 if (currentHP <= maxHP * 0.2f)
                     state = EnemyState.RunAway;
+                else if (dist < suicideRange)
+                    state = EnemyState.Suicide;
                 else if (dist < attackRange)
                     state = EnemyState.Attack;
                 else
@@ -69,29 +85,28 @@ public class Enemy : MonoBehaviour
             case EnemyState.Attack:
                 if (currentHP <= maxHP * 0.2f)
                     state = EnemyState.RunAway;
+                else if (dist < suicideRange)
+                    state = EnemyState.Suicide;
                 else if (dist > attackRange)
                     state = EnemyState.Trace;
-
                 else
                     AttackPlayer();
                 break;
 
+            case EnemyState.Suicide:
+                StartSuicideCountdown();
+                break;
+
             case EnemyState.RunAway:
                 RunAwayFromPlayer();
-
-                float runawayDistance = 15f; // µµ¸Á ¿Ï·á °Å¸® ±âÁØ
-
+                float runawayDistance = 15f;
                 if (Vector3.Distance(player.position, transform.position) > runawayDistance)
                     state = EnemyState.Idle;
                 break;
-
         }
-
-        //ÇÃ·¹ÀÌ¾î±îÁöÀÇ ¹æÇâ ±¸ÇÏ±â
-        Vector3 direction = (player.position - transform.position).normalized;
-        transform.position += direction * movespeed * Time.deltaTime;
-        transform.LookAt(player.position);
     }
+
+    // === í•¨ìˆ˜ ì •ì˜ ===
 
     public void TakeDamage(int damage)
     {
@@ -104,9 +119,17 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    //Àû Á¦°Å
     void Die()
     {
+        if (suicideCoroutine != null)
+        {
+            StopCoroutine(suicideCoroutine);
+            suicideCoroutine = null;
+        }
+        if (enemyRenderer != null)
+        {
+            enemyRenderer.material.SetColor("_BaseColor", originalColor);
+        }
         Destroy(gameObject);
     }
 
@@ -119,12 +142,12 @@ public class Enemy : MonoBehaviour
 
     void AttackPlayer()
     {
-        //ÀÏÁ¤ Äğ´Ù¿î¸¶´Ù ¹ß»ç
-        if (Time.deltaTime >= lastAttackTime + attackCooldown)
+        if (Time.time >= lastAttackTime + attackCooldown)
         {
             lastAttackTime = Time.time;
             ShootProjectile();
         }
+        transform.LookAt(player.position);
     }
 
     void ShootProjectile()
@@ -133,26 +156,87 @@ public class Enemy : MonoBehaviour
         {
             transform.LookAt(player.position);
             GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
+
             EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
             if (ep != null)
             {
                 Vector3 dir = (player.position - firePoint.position).normalized;
                 ep.SetDirection(dir);
-            }    
+            }
         }
     }
 
     void RunAwayFromPlayer()
     {
         Vector3 traceDirection = (player.position - transform.position).normalized;
-        Vector3 runDirection = -traceDirection; // ¹İ´ë ¹æÇâ
+        Vector3 runDirection = -traceDirection;
 
         float runSpeed = movespeed * 2f;
 
-        // ÀÌµ¿
         transform.position += runDirection * runSpeed * Time.deltaTime;
-
-        // ÀûÀÇ ½Ã¼± ¹æÇâÀ» ÀÌµ¿ ¹æÇâÀ¸·Î ¼³Á¤
         transform.rotation = Quaternion.LookRotation(runDirection);
+    }
+
+    private void StartSuicideCountdown()
+    {
+        if (suicideCoroutine == null)
+        {
+            suicideCoroutine = StartCoroutine(SuicideCountdown());
+        }
+    }
+
+    IEnumerator SuicideCountdown()
+    {
+        if (enemyRenderer != null)
+        {
+            // ë¹›ë‚˜ëŠ” ì‹œê° íš¨ê³¼ ì ìš©
+            enemyRenderer.material.SetColor("_BaseColor", warningColor);
+        }
+
+        // 1ì´ˆ ëŒ€ê¸° (ìí­ ë”œë ˆì´)
+        yield return new WaitForSeconds(suicideDelay);
+
+        // ìí­ ì‹¤í–‰ ì „ì— ì›ë˜ ìƒ‰ìƒ ë³µêµ¬
+        if (enemyRenderer != null)
+        {
+            enemyRenderer.material.SetColor("_BaseColor", originalColor);
+        }
+
+        suicideCoroutine = null;
+
+        // ìí­ ì‹¤í–‰
+        ExplodeAndDestroyTiles();
+    }
+
+    void ExplodeAndDestroyTiles()
+    {
+        // 1. ì  ì£¼ë³€ì˜ ì½œë¼ì´ë” ê²€ìƒ‰ (ì´ì œ 3m ë°˜ê²½ì…ë‹ˆë‹¤)
+        Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
+
+        int tilesDestroyed = 0;
+
+        // 2. ê²€ìƒ‰ëœ ëª¨ë“  ì½œë¼ì´ë”ë¥¼ ìˆœíšŒí•˜ë©° íƒ€ì¼ íŒŒê´´
+        foreach (var hitCollider in hitColliders)
+        {
+            VoxelCollapse tileScript = hitCollider.GetComponent<VoxelCollapse>();
+
+            if (tileScript != null)
+            {
+                if (tileScript.IsCollapseStarted)
+                {
+                    tileScript.CancelCollapse();
+                }
+
+                tileScript.collapseDelay = 0.001f;
+
+                tileScript.StartDelayedCollapse();
+                tilesDestroyed++;
+            }
+        }
+
+        Debug.Log($"ìí­: ì£¼ë³€ {explosionRadius}m ë‚´ {tilesDestroyed}ê°œ íƒ€ì¼ì„ ì¦‰ì‹œ íŒŒê´´í–ˆìŠµë‹ˆë‹¤.");
+
+        // ë§ˆì§€ë§‰ìœ¼ë¡œ, ì ì„ ì œê±°í•©ë‹ˆë‹¤.
+        Die();
     }
 }
