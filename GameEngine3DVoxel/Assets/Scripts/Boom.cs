@@ -1,38 +1,53 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Boom : MonoBehaviour
 {
-    public float speed = 40f;  //ÀÌµ¿ ¼Óµµ
+    public float speed = 40f;  //ì´ë™ ì†ë„
 
-    public float lifeTime = 2f;    //»ıÁ¸ ½Ã°£ (ÃÊ)
+    public float lifeTime = 2f;    //ìƒì¡´ ì‹œê°„ (ì´ˆ)
 
     // Start is called before the first frame update
     void Start()
     {
-        //ÀÏÁ¤ ½Ã°£ ÈÄ ÀÚµ¿ »èÁ¦ (¸Ş¸ğ¸® °ü¸®)
+        //ì¼ì • ì‹œê°„ í›„ ìë™ ì‚­ì œ (ë©”ëª¨ë¦¬ ê´€ë¦¬)
         Destroy(gameObject, lifeTime);
     }
 
     // Update is called once per frame
     void Update()
     {
-        //·ÎÄÃÀÇ forward ¹æÇâ(¾Õ)À¸·Î ÀÌµ¿
+        //ë¡œì»¬ì˜ forward ë°©í–¥(ì•)ìœ¼ë¡œ ì´ë™
         transform.Translate(Vector3.forward * speed * Time.deltaTime);
     }
 
     private void OnTriggerEnter(Collider other)
     {
+        // 1. Enemy íƒœê·¸ì™€ ì¶©ëŒí–ˆì„ ë•Œ (3 í”¼í•´)
         if (other.CompareTag("Enemy"))
         {
             Enemy enemy = other.GetComponent<Enemy>();
             if (enemy != null)
             {
-                enemy.TakeDamage(3); // Ã¼·Â 1 °¨¼Ò
+                enemy.TakeDamage(3); // ì²´ë ¥ 3 ê°ì†Œ (ê¸°ì¡´ ì½”ë“œ ìœ ì§€)
             }
 
-            Destroy(gameObject); // ÃÑ¾Ë Á¦°Å
+            Destroy(gameObject); // ë¬´ê¸° ì œê±°
+        }
+        // ğŸ’¡ 2. CloudCore íƒœê·¸ì™€ ì¶©ëŒí–ˆì„ ë•Œ (3 í”¼í•´)
+        else if (other.CompareTag("CloudCore"))
+        {
+            CloudCore core = other.GetComponent<CloudCore>();
+
+            if (core != null)
+            {
+                // ğŸ’¡ CloudCoreì— 3ì˜ í”¼í•´ë¥¼ ì…íˆëŠ” í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•©ë‹ˆë‹¤.
+                // ì´ í•¨ìˆ˜ëŠ” CloudCore ë‚´ë¶€ì—ì„œ isAttackableì„ ì²´í¬í•©ë‹ˆë‹¤.
+                core.TakeDamageIfAttackable(3);
+            }
+
+            Destroy(gameObject); // ë¬´ê¸° ì œê±°
         }
     }
 }
