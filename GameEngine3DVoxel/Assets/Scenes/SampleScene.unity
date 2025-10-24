@@ -3374,10 +3374,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 459c7cb37b9d169418d3fa1790823531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 5099992602596450727, guid: 759e40a61b124c44f9b9577d53542b41,
+  enemyPrefab: {fileID: 5774390113130817387, guid: 608cd33ac526d304c80c36811e0e1da5,
     type: 3}
   spawnInterval: 3
   spawnRange: 10
+  maxEnemiesToSpawn: 10
+  spawnCheckDistance: 10
+  spawnHeightOffset: 0.5
 --- !u!4 &1324729944
 Transform:
   m_ObjectHideFlags: 0
