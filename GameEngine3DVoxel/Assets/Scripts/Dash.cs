@@ -37,7 +37,7 @@ public class Dash : MonoBehaviour
     private Color originalColor;
     private Rigidbody enemyRigidbody;
 
-    public int maxHP = 5;
+    public int maxHP = 10;
     public int currentHP;
 
     private float lastAttackTime;
