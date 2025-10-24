@@ -1,45 +1,38 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerShooting : MonoBehaviour
 {
-
-    public GameObject projectilePrefab;   //projectile ÇÁ¸®ÆÕ
-
+    public GameObject projectilePrefab;
     public GameObject BoomPrefab;
-
-    public Transform firePoint;           //¹ß»ç À§Ä¡ (ÃÑ±¸)
+    public Transform firePoint;
 
     Camera cam;
 
-    private GameObject currentWeaponPrefab; // ÇöÀç ¼±ÅÃµÈ ¹«±â
+    private GameObject currentWeaponPrefab;
+    private bool isBoomMode = false;
 
-    private bool isBoomMode = false;        // ¹«±â ÀüÈ¯ »óÅÂ
-
-    // Start is called before the first frame update
     void Start()
     {
-        cam = Camera.main;        //¸ŞÀÎ Ä«¸Ş¶ó °¡Á®¿À±â
+        cam = Camera.main;
         currentWeaponPrefab = projectilePrefab;
     }
 
-    // Update is called once per frame
     void Update()
     {
-
-        // Z Å°·Î ¹«±â ÀüÈ¯
+        // Z í‚¤ë¡œ ë¬´ê¸° ì „í™˜
         if (Input.GetKeyDown(KeyCode.Z))
         {
             isBoomMode = !isBoomMode;
             currentWeaponPrefab = isBoomMode ? BoomPrefab : projectilePrefab;
-            if(isBoomMode)
-            { 
-                Debug.Log("ÆøÅº¶ì");
+            if (isBoomMode)
+            {
+                Debug.Log("í­íƒ„ë ");
             }
             else
             {
-                Debug.Log("¾ÈÆøÅº");
+                Debug.Log("ì•ˆí­íƒ„");
             }
         }
 
@@ -51,13 +44,14 @@ public class PlayerShooting : MonoBehaviour
 
     void Shoot()
     {
-        //È­¸é¿¡¼­ ¸¶¿ì½º -> ±¤¼±(Ray) ½î±â
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        Vector3 targetPoint;
-        targetPoint = ray.GetPoint(50f);
-        Vector3 direction = (targetPoint - firePoint.position).normalized;  //¹æÇâ º¤ÅÍ
+        // ğŸ’¡ 1. Raycasting ë¡œì§ì„ ì œê±°í•˜ê³  ì¹´ë©”ë¼ì˜ ì •ë©´ ë°©í–¥ì„ ì‚¬ìš©í•©ë‹ˆë‹¤.
+        //    (ì¹´ë©”ë¼ê°€ ê³§ í”Œë ˆì´ì–´ì˜ ì‹œì„ ì´ë¼ê³  ê°€ì •í•©ë‹ˆë‹¤.)
+        Vector3 direction = cam.transform.forward;
 
-        //Projectile »ı¼º
+        // ğŸ’¡ 2. íˆ¬ì‚¬ì²´ê°€ ì´ ë°©í–¥ì„ í–¥í•˜ë„ë¡ íšŒì „ì‹œì¼œ ìƒì„±í•©ë‹ˆë‹¤.
         GameObject proj = Instantiate(currentWeaponPrefab, firePoint.position, Quaternion.LookRotation(direction));
+
+        // ğŸ’¡ ì°¸ê³ : ë§Œì•½ íˆ¬ì‚¬ì²´ì— Rigidbodyë‚˜ ìŠ¤í¬ë¦½íŠ¸ê°€ ìˆë‹¤ë©´, 
+        //    í•´ë‹¹ ìŠ¤í¬ë¦½íŠ¸ì— directionì„ ì „ë‹¬í•˜ì—¬ ì›€ì§ì„ì„ ì‹œì‘í•´ì•¼ í•©ë‹ˆë‹¤.
     }
 }
