@@ -5,8 +5,8 @@ using UnityEngine.UI;
 
 public class TNT : MonoBehaviour
 {
-    // === 상태 열거형 (Suicide 상태 제거) ===
-    public enum EnemyState { Idle, Trace, Attack, RunAway }
+    // === 상태 열거형 ===
+    public enum EnemyState { Idle, Trace, Attack, RunAway } // Suicide 제거됨
     public EnemyState state = EnemyState.Idle;
 
     // === 이동 및 추적 설정 ===
@@ -14,11 +14,7 @@ public class TNT : MonoBehaviour
     public float traceRange = 15f;
     public float attackRange = 6f;
 
-    // 💡 자폭 관련 변수 제거 (suicideRange, explosionRadius, explosionDamage 등)
-
-    // === 지면 부착 설정 ===
-    public float groundCheckDistance = 1.0f; // 땅을 체크할 거리
-    public float groundOffset = 0.1f;        // 땅 표면에서 적이 떠있는 높이
+    // 💡 지면 부착 설정 변수 제거 (사용 안 함)
 
     // === 공격 설정 ===
     public float attackCooldown = 1.5f;
@@ -28,7 +24,7 @@ public class TNT : MonoBehaviour
     private float lastAttackTime;
 
     // === 체력 설정 ===
-    public int maxHP = 10; // 💡 maxHP 10으로 고정 (기존 Enemy 스크립트에서는 5였으나, 요청에 따름)
+    public int maxHP = 10; // maxHP 10으로 고정
     public int currentHP;
 
     // === 컴포넌트 ===
@@ -36,7 +32,6 @@ public class TNT : MonoBehaviour
     public Slider hpSlider;
     private Renderer enemyRenderer;
     private Color originalColor;
-    // private Coroutine suicideCoroutine; // 💡 제거
     private Rigidbody enemyRigidbody;
 
 
@@ -53,22 +48,21 @@ public class TNT : MonoBehaviour
 
         enemyRenderer = GetComponent<Renderer>();
 
-        // 💡 Rigidbody 설정: Kinematic으로 고정 (평소 이동)
         enemyRigidbody = GetComponent<Rigidbody>();
         if (enemyRigidbody == null)
         {
             enemyRigidbody = gameObject.AddComponent<Rigidbody>();
         }
+        // 💡 비행 유닛: Kinematic으로 고정하여 3D 이동을 제어합니다.
         enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
         if (enemyRenderer != null)
         {
-            // 💡 범용적인 .color 속성을 사용하여 원래 색상을 저장
             originalColor = enemyRenderer.material.color;
         }
 
-        // 💡 EnemyManager에 자신을 등록
+        // EnemyManager에 자신을 등록
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.RegisterEnemy();
@@ -79,10 +73,8 @@ public class TNT : MonoBehaviour
     {
         if (player == null) return;
 
-        // Die()가 호출되어 Kinematic이 해제되면 더 이상 Update의 로직을 수행하지 않음
+        // Kinematic이 해제될 일은 없지만, 구조 유지를 위해 검사 유지
         if (enemyRigidbody != null && !enemyRigidbody.isKinematic) return;
-
-        // 💡 Suicide 코루틴 검사 로직 제거
 
         float dist = Vector3.Distance(player.position, transform.position);
 
@@ -98,27 +90,23 @@ public class TNT : MonoBehaviour
             case EnemyState.Trace:
                 if (currentHP <= maxHP * 0.2f)
                     state = EnemyState.RunAway;
-                // 💡 Suicide 관련 상태 전환 제거
                 else if (dist < attackRange)
                     state = EnemyState.Attack;
                 else
-                    TracePlayer();
+                    TracePlayer(); // 💡 3D 추적 실행
                 break;
 
             case EnemyState.Attack:
                 if (currentHP <= maxHP * 0.2f)
                     state = EnemyState.RunAway;
-                // 💡 Suicide 관련 상태 전환 제거
                 else if (dist > attackRange)
                     state = EnemyState.Trace;
                 else
-                    AttackPlayer();
+                    AttackPlayer(); // 💡 3D 조준 및 공격 실행
                 break;
 
-            // 💡 Suicide 상태 처리 로직 제거
-
             case EnemyState.RunAway:
-                RunAwayFromPlayer();
+                RunAwayFromPlayer(); // 💡 3D 도망 실행
                 float runawayDistance = 15f;
                 if (Vector3.Distance(player.position, transform.position) > runawayDistance)
                     state = EnemyState.Idle;
@@ -139,46 +127,29 @@ public class TNT : MonoBehaviour
         }
     }
 
-    // 💡 Die 함수 수정: 즉시 파괴
     void Die()
     {
-        // 💡 적이 파괴될 때 EnemyManager에 알립니다.
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.UnregisterEnemy();
         }
-
-        // 💡 Suicide 코루틴 관련 중지 로직 제거
-
-        // 💡 Rigidbody와 관련된 낙하 로직을 모두 제거하고 즉시 파괴합니다.
         Destroy(gameObject);
     }
 
-    // 💡 DelayedDestroy 코루틴 제거 (사용 안 함)
-
-    // 💡 TracePlayer 함수 수정: 이동 전 지면 검사 및 Y축 고정
+    // 💡 TracePlayer 함수 수정: 3D 이동으로 변경
     void TracePlayer()
     {
         Vector3 dir = (player.position - transform.position).normalized;
 
-        // 이동 로직 (지면 검사 후 X, Z 이동)
-        Vector3 movement = new Vector3(dir.x, 0, dir.z) * movespeed * Time.deltaTime;
-        Vector3 nextPosition = transform.position + movement;
+        // 💡 3D 이동: Y축을 포함한 모든 방향으로 움직입니다.
+        Vector3 movement = dir * movespeed * Time.deltaTime;
+        transform.position += movement;
 
-        if (CheckGround(nextPosition))
-        {
-            transform.position = nextPosition;
-            SnapToGround();
-        }
-
-        // 💡 회전 로직: 플레이어의 Y 좌표를 적의 Y 좌표로 고정 (수직 회전 방지)
-        Vector3 lookTarget = player.position;
-        lookTarget.y = transform.position.y;
-
-        transform.LookAt(lookTarget);
+        // 💡 3D 회전: 플레이어의 실제 3D 위치를 바라봅니다.
+        transform.LookAt(player.position);
     }
 
-    // 💡 AttackPlayer 함수 수정: Y축 고정 로직 유지
+    // 💡 AttackPlayer 함수 수정: 3D 조준 및 공격
     void AttackPlayer()
     {
         if (Time.time >= lastAttackTime + attackCooldown)
@@ -187,16 +158,11 @@ public class TNT : MonoBehaviour
             ShootProjectile();
         }
 
-        SnapToGround();
-
-        // 💡 회전 로직: 플레이어의 Y 좌표를 적의 Y 좌표로 고정 (수직 회전 방지)
-        Vector3 lookTarget = player.position;
-        lookTarget.y = transform.position.y;
-
-        transform.LookAt(lookTarget);
+        // 💡 3D 회전: 플레이어의 실제 3D 위치를 바라봅니다.
+        transform.LookAt(player.position);
     }
 
-    // 💡 RunAwayFromPlayer 함수 수정: 이동 전 지면 검사 추가
+    // 💡 RunAwayFromPlayer 함수 수정: 3D 도망으로 변경
     void RunAwayFromPlayer()
     {
         Vector3 traceDirection = (player.position - transform.position).normalized;
@@ -204,72 +170,33 @@ public class TNT : MonoBehaviour
 
         float runSpeed = movespeed * 2f;
 
-        // 이동할 거리 계산 (X, Z축만)
-        Vector3 movement = new Vector3(runDirection.x, 0, runDirection.z) * runSpeed * Time.deltaTime;
-        Vector3 nextPosition = transform.position + movement;
-
-        if (CheckGround(nextPosition))
-        {
-            // X, Z축 이동
-            transform.position = nextPosition;
-
-            // Y좌표 고정 (Snap to Ground)
-            SnapToGround();
-        }
+        // 💡 3D 도망: Y축을 포함한 모든 방향으로 도망갑니다.
+        Vector3 movement = runDirection * runSpeed * Time.deltaTime;
+        transform.position += movement;
 
         transform.rotation = Quaternion.LookRotation(runDirection);
     }
 
-    // 💡 새로운 함수: Raycast를 사용하여 특정 위치에 지면이 있는지 확인
-    bool CheckGround(Vector3 position)
-    {
-        RaycastHit hit;
-        // 현재 위치보다 조금 높은 곳에서 Raycast를 아래로 쏩니다.
-        if (Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance))
-        {
-            // VoxelCollapse 스크립트가 붙은 타일을 찾았다면
-            if (hit.collider.GetComponent<VoxelCollapse>() != null)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    // 💡 새로운 함수: Raycast를 사용하여 적을 지면에 부착시키는 로직 (Y좌표 조정)
-    void SnapToGround()
-    {
-        RaycastHit hit;
-        // 현재 위치보다 조금 높은 곳에서 Raycast를 아래로 쏩니다.
-        if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance))
-        {
-            VoxelCollapse tileScript = hit.collider.GetComponent<VoxelCollapse>();
-
-            if (tileScript != null)
-            {
-                // 적의 Y 좌표를 충돌 지점(hit.point.y) + 오프셋으로 설정합니다.
-                transform.position = new Vector3(transform.position.x, hit.point.y + groundOffset, transform.position.z);
-            }
-        }
-    }
+    // 💡 지상 유닛 전용 함수들은 제거 (CheckGround, SnapToGround)
+    /*
+    bool CheckGround(Vector3 position) { return false; }
+    void SnapToGround() { }
+    */
 
 
     void ShootProjectile()
     {
         if (projectilePrefab != null && firePoint != null)
         {
-            // 💡 회전 로직: 플레이어의 Y 좌표를 적의 Y 좌표로 고정 (수직 회전 방지)
-            Vector3 lookTarget = player.position;
-            lookTarget.y = transform.position.y;
-
-            transform.LookAt(lookTarget); // 수평으로만 회전합니다.
+            // 💡 3D 회전은 AttackPlayer에서 이미 처리됨
 
             GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
 
             EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
             if (ep != null)
             {
-                // 투사체의 발사 방향은 플레이어의 실제 위치(Y축 포함)를 향해야 합니다.
+                // 투사체의 발사 방향은 이미 LookAt을 통해 정렬된 firePoint의 forward 방향입니다.
+                // 그러나 안전을 위해 직접 계산하여 전달합니다.
                 Vector3 dir = (player.position - firePoint.position).normalized;
                 ep.SetDirection(dir);
             }
@@ -279,7 +206,6 @@ public class TNT : MonoBehaviour
     // 💡 DeadZone에 닿았는지 확인하는 Trigger 함수
     private void OnTriggerEnter(Collider other)
     {
-        // DeadZone 태그를 가진 오브젝트와 충돌했는지 확인합니다.
         if (other.CompareTag("DeadZone"))
         {
             Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");

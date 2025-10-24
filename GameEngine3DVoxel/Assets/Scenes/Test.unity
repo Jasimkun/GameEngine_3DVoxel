@@ -7615,7 +7615,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 459c7cb37b9d169418d3fa1790823531, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 5099992602596450727, guid: 759e40a61b124c44f9b9577d53542b41,
+  enemyPrefab: {fileID: 5774390113130817387, guid: eaeaf6cc6031c9c448ec62dd1c412581,
     type: 3}
   spawnInterval: 3
   spawnRange: 1
