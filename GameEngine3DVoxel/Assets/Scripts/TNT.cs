@@ -6,15 +6,13 @@ using UnityEngine.UI;
 public class TNT : MonoBehaviour
 {
     // === 상태 열거형 ===
-    public enum EnemyState { Idle, Trace, Attack, RunAway } // Suicide 제거됨
+    public enum EnemyState { Idle, Trace, Attack, RunAway }
     public EnemyState state = EnemyState.Idle;
 
     // === 이동 및 추적 설정 ===
     public float movespeed = 2f;
     public float traceRange = 15f;
     public float attackRange = 6f;
-
-    // 💡 지면 부착 설정 변수 제거 (사용 안 함)
 
     // === 공격 설정 ===
     public float attackCooldown = 1.5f;
@@ -24,7 +22,7 @@ public class TNT : MonoBehaviour
     private float lastAttackTime;
 
     // === 체력 설정 ===
-    public int maxHP = 10; // maxHP 10으로 고정
+    public int maxHP = 10;
     public int currentHP;
 
     // === 컴포넌트 ===
@@ -53,7 +51,7 @@ public class TNT : MonoBehaviour
         {
             enemyRigidbody = gameObject.AddComponent<Rigidbody>();
         }
-        // 💡 비행 유닛: Kinematic으로 고정하여 3D 이동을 제어합니다.
+        // 비행 유닛: Kinematic으로 고정하여 3D 이동을 제어합니다.
         enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
@@ -73,7 +71,6 @@ public class TNT : MonoBehaviour
     {
         if (player == null) return;
 
-        // Kinematic이 해제될 일은 없지만, 구조 유지를 위해 검사 유지
         if (enemyRigidbody != null && !enemyRigidbody.isKinematic) return;
 
         float dist = Vector3.Distance(player.position, transform.position);
@@ -93,7 +90,7 @@ public class TNT : MonoBehaviour
                 else if (dist < attackRange)
                     state = EnemyState.Attack;
                 else
-                    TracePlayer(); // 💡 3D 추적 실행
+                    TracePlayer();
                 break;
 
             case EnemyState.Attack:
@@ -102,11 +99,11 @@ public class TNT : MonoBehaviour
                 else if (dist > attackRange)
                     state = EnemyState.Trace;
                 else
-                    AttackPlayer(); // 💡 3D 조준 및 공격 실행
+                    AttackPlayer();
                 break;
 
             case EnemyState.RunAway:
-                RunAwayFromPlayer(); // 💡 3D 도망 실행
+                RunAwayFromPlayer();
                 float runawayDistance = 15f;
                 if (Vector3.Distance(player.position, transform.position) > runawayDistance)
                     state = EnemyState.Idle;
@@ -136,16 +133,14 @@ public class TNT : MonoBehaviour
         Destroy(gameObject);
     }
 
-    // 💡 TracePlayer 함수 수정: 3D 이동으로 변경
+    // 💡 TracePlayer 함수: 3D 이동으로 변경
     void TracePlayer()
     {
         Vector3 dir = (player.position - transform.position).normalized;
 
-        // 💡 3D 이동: Y축을 포함한 모든 방향으로 움직입니다.
         Vector3 movement = dir * movespeed * Time.deltaTime;
         transform.position += movement;
 
-        // 💡 3D 회전: 플레이어의 실제 3D 위치를 바라봅니다.
         transform.LookAt(player.position);
     }
 
@@ -158,7 +153,6 @@ public class TNT : MonoBehaviour
             ShootProjectile();
         }
 
-        // 💡 3D 회전: 플레이어의 실제 3D 위치를 바라봅니다.
         transform.LookAt(player.position);
     }
 
@@ -170,33 +164,23 @@ public class TNT : MonoBehaviour
 
         float runSpeed = movespeed * 2f;
 
-        // 💡 3D 도망: Y축을 포함한 모든 방향으로 도망갑니다.
         Vector3 movement = runDirection * runSpeed * Time.deltaTime;
         transform.position += movement;
 
         transform.rotation = Quaternion.LookRotation(runDirection);
     }
 
-    // 💡 지상 유닛 전용 함수들은 제거 (CheckGround, SnapToGround)
-    /*
-    bool CheckGround(Vector3 position) { return false; }
-    void SnapToGround() { }
-    */
-
-
     void ShootProjectile()
     {
         if (projectilePrefab != null && firePoint != null)
         {
-            // 💡 3D 회전은 AttackPlayer에서 이미 처리됨
+            transform.LookAt(player.position);
 
             GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
 
             EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
             if (ep != null)
             {
-                // 투사체의 발사 방향은 이미 LookAt을 통해 정렬된 firePoint의 forward 방향입니다.
-                // 그러나 안전을 위해 직접 계산하여 전달합니다.
                 Vector3 dir = (player.position - firePoint.position).normalized;
                 ep.SetDirection(dir);
             }
@@ -206,10 +190,19 @@ public class TNT : MonoBehaviour
     // 💡 DeadZone에 닿았는지 확인하는 Trigger 함수
     private void OnTriggerEnter(Collider other)
     {
+        // 1. DeadZone에 닿았는지 확인
         if (other.CompareTag("DeadZone"))
         {
             Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
             Die();
+            return;
+        }
+
+        // 💡 2. 투사체 충돌 감지 및 피해 적용 (Boom 로직 제거됨)
+        if (other.GetComponent<Projectile>() != null)
+        {
+            TakeDamage(1);
+            Destroy(other.gameObject);
         }
     }
 }

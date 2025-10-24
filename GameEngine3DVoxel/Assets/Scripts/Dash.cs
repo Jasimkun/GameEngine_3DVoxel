@@ -6,7 +6,6 @@ using UnityEngine.UI;
 public class Dash : MonoBehaviour
 {
     // === 상태 열거형 ===
-    // 💡 Wait 상태 추가: 공격 후 재탐색 대기 시간
     public enum EnemyState { Idle, Trace, Charge, RunAway, Wait }
     public EnemyState state = EnemyState.Idle;
 
@@ -19,12 +18,12 @@ public class Dash : MonoBehaviour
     // 💡 충돌 설정
     public float pushForce = 5f;
     public int contactDamage = 5;
-    public float pushCooldown = 3f;     // 밀치기 재사용 대기시간 (쿨타임 체크용)
-    private float lastPushTime;          // 마지막으로 밀친 시간
+    public float pushCooldown = 3f;
+    private float lastPushTime;
 
     // 💡 Wait 상태 설정
-    public float waitDuration = 3f;     // 공격 후 대기/탐색 시간 (3초)
-    private float waitEndTime;          // 대기 종료 시간
+    public float waitDuration = 3f;
+    private float waitEndTime;
 
     // === 지면 부착 설정 ===
     public float groundCheckDistance = 1.0f;
@@ -64,7 +63,7 @@ public class Dash : MonoBehaviour
             originalColor = enemyRenderer.material.color;
         }
 
-        lastPushTime = -pushCooldown; // 게임 시작 시 즉시 공격 가능
+        lastPushTime = -pushCooldown;
 
         if (EnemyManager.Instance != null)
         {
@@ -86,7 +85,6 @@ public class Dash : MonoBehaviour
                 break;
 
             case EnemyState.Trace:
-                // 💡 Wait 상태로 전환하는 로직이 충돌 감지에서 처리되므로, 여기서는 Charge만 확인
                 if (dist < chargeRange)
                     state = EnemyState.Charge;
                 else
@@ -100,10 +98,10 @@ public class Dash : MonoBehaviour
                     ChargePlayer();
                 break;
 
-            case EnemyState.Wait: // 💡 Wait 상태 처리
+            case EnemyState.Wait:
                 if (Time.time >= waitEndTime)
                 {
-                    state = EnemyState.Trace; // 대기 시간 종료 -> 재탐색(Trace) 시작
+                    state = EnemyState.Trace;
                 }
                 break;
 
@@ -155,7 +153,6 @@ public class Dash : MonoBehaviour
         lookTarget.y = transform.position.y;
         transform.LookAt(lookTarget);
 
-        // 돌진 시 시각적 피드백
         if (enemyRenderer != null)
         {
             enemyRenderer.material.color = Color.red;
@@ -178,7 +175,6 @@ public class Dash : MonoBehaviour
         lookTarget.y = transform.position.y;
         transform.LookAt(lookTarget);
 
-        // 추적 시 원래 색상 복구
         if (enemyRenderer != null)
         {
             enemyRenderer.material.color = originalColor;
@@ -205,14 +201,37 @@ public class Dash : MonoBehaviour
 
     // === 지면 및 충돌 로직 ===
 
+    // 💡 투사체 감지 및 피해 로직 추가
+    void OnTriggerEnter(Collider other)
+    {
+        // 1. 투사체 충돌 감지: Projectile 스크립트를 가진 오브젝트와 충돌했는지 확인
+        //    (Boom.cs도 투사체라면 || other.GetComponent<Boom>() != null 로 추가할 수 있습니다.)
+        if (other.GetComponent<Projectile>() != null)
+        {
+            // Projectile 스크립트에서 데미지 값을 가져옵니다. (기존 Projectile 스크립트에는 damage 변수가 없으므로 1로 고정)
+            // Projectile projectile = other.GetComponent<Projectile>();
+            // int damage = projectile.damage; // 만약 Projectile.cs에 damage 변수가 있다면 이렇게 사용
+
+            TakeDamage(1);
+
+            // 💡 투사체는 충돌 후 파괴되어야 합니다.
+            Destroy(other.gameObject);
+        }
+
+        // 2. DeadZone 충돌 처리 (기존 로직 유지)
+        if (other.CompareTag("DeadZone"))
+        {
+            Die();
+        }
+    }
+
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        // 💡 1. 쿨타임 확인: 현재 시간이 마지막 밀치기 시간 + 쿨타임보다 크거나 같을 때만 공격
+        // 💡 1. 쿨타임 확인 (근접 충돌 쿨타임)
         if (Time.time >= lastPushTime + pushCooldown)
         {
             if (hit.gameObject.CompareTag("Player"))
             {
-                // 쿨타임 갱신
                 lastPushTime = Time.time;
 
                 // 1. 플레이어에게 피해를 줍니다.
@@ -230,11 +249,11 @@ public class Dash : MonoBehaviour
                     playerRb.AddForce(pushDirection * pushForce, ForceMode.Impulse);
                 }
 
-                // 💡 3. 공격 성공 후 Wait 상태로 전환 및 종료 시간 설정
+                // 3. 공격 성공 후 Wait 상태로 전환 및 종료 시간 설정
                 state = EnemyState.Wait;
                 waitEndTime = Time.time + waitDuration;
 
-                // 💡 4. 색상을 원래대로 돌려놓음 (돌진 종료 시각적 피드백)
+                // 4. 색상을 원래대로 돌려놓음 (돌진 종료 시각적 피드백)
                 if (enemyRenderer != null)
                 {
                     enemyRenderer.material.color = originalColor;
