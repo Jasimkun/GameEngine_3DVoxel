@@ -23,17 +23,17 @@ public class Enemy : MonoBehaviour
     // === 자폭 및 경고 설정 ===
     public float suicideDelay = 1f;
     public Color warningColor = Color.white;
-    public int explosionDamage = 10; // 💡 자폭 피해량 10으로 설정
+    public int explosionDamage = 10; // 자폭 피해량 10으로 설정
 
-    // === 공격 설정 ===
+    // === 공격 설정 (투사체 관련 변수 제거) ===
     public float attackCooldown = 1.5f;
-    public GameObject projectilePrefab;
-    public Transform firePoint;
+    // public GameObject projectilePrefab; // 💡 제거
+    // public Transform firePoint;          // 💡 제거
 
     private float lastAttackTime;
 
     // === 체력 설정 ===
-    public int maxHP = 5;
+    public int maxHP = 10; // maxHP 10으로 고정
     public int currentHP;
 
     // === 컴포넌트 ===
@@ -42,7 +42,7 @@ public class Enemy : MonoBehaviour
     private Renderer enemyRenderer;
     private Color originalColor;
     private Coroutine suicideCoroutine;
-    private Rigidbody enemyRigidbody; // Rigidbody 변수 추가
+    private Rigidbody enemyRigidbody;
 
 
     void Start()
@@ -50,7 +50,11 @@ public class Enemy : MonoBehaviour
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         lastAttackTime = -attackCooldown;
         currentHP = maxHP;
-        hpSlider.value = 1f;
+
+        if (hpSlider != null)
+        {
+            hpSlider.value = (float)currentHP / maxHP;
+        }
 
         enemyRenderer = GetComponent<Renderer>();
 
@@ -65,7 +69,6 @@ public class Enemy : MonoBehaviour
 
         if (enemyRenderer != null)
         {
-            // 💡 범용적인 .color 속성을 사용하여 원래 색상을 저장
             originalColor = enemyRenderer.material.color;
         }
 
@@ -115,7 +118,7 @@ public class Enemy : MonoBehaviour
                 else if (dist > attackRange)
                     state = EnemyState.Trace;
                 else
-                    AttackPlayer();
+                    AttackPlayer(); // 💡 공격 실행 (근접 공격/대기 역할)
                 break;
 
             case EnemyState.Suicide:
@@ -144,7 +147,6 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    // 💡 Die 함수 수정: 즉시 파괴
     void Die()
     {
         // 💡 적이 파괴될 때 EnemyManager에 알립니다.
@@ -159,18 +161,15 @@ public class Enemy : MonoBehaviour
             suicideCoroutine = null;
         }
 
-        // 💡 Rigidbody와 관련된 낙하 로직을 모두 제거하고 즉시 파괴합니다.
         Destroy(gameObject);
     }
 
-    // 💡 지연 파괴 코루틴 (현재 사용 안 함)
     IEnumerator DelayedDestroy(float delay)
     {
         yield return new WaitForSeconds(delay);
         Destroy(gameObject);
     }
 
-    // 💡 TracePlayer 함수 수정: 이동 전 지면 검사 및 Y축 고정
     void TracePlayer()
     {
         Vector3 dir = (player.position - transform.position).normalized;
@@ -192,14 +191,16 @@ public class Enemy : MonoBehaviour
         transform.LookAt(lookTarget);
     }
 
-    // 💡 AttackPlayer 함수 수정: Y축 고정 로직 유지
+    // 💡 AttackPlayer 함수 수정: 투사체 발사 로직 제거 (근접 대기만 수행)
     void AttackPlayer()
     {
-        if (Time.time >= lastAttackTime + attackCooldown)
-        {
-            lastAttackTime = Time.time;
-            ShootProjectile();
-        }
+        // 💡 투사체 발사 대신, 쿨타임마다 플레이어를 바라보며 대기만 합니다.
+
+        // if (Time.time >= lastAttackTime + attackCooldown)
+        // {
+        //     lastAttackTime = Time.time;
+        //     // ShootProjectile(); // 투사체 발사 로직 제거
+        // }
 
         SnapToGround();
 
@@ -209,6 +210,13 @@ public class Enemy : MonoBehaviour
 
         transform.LookAt(lookTarget);
     }
+
+    // 💡 ShootProjectile 함수 제거
+    /*
+    void ShootProjectile() {
+        // ... (내용 제거)
+    }
+    */
 
     // 💡 RunAwayFromPlayer 함수 수정: 이동 전 지면 검사 추가
     void RunAwayFromPlayer()
@@ -222,7 +230,6 @@ public class Enemy : MonoBehaviour
         Vector3 movement = new Vector3(runDirection.x, 0, runDirection.z) * runSpeed * Time.deltaTime;
         Vector3 nextPosition = transform.position + movement;
 
-        // 💡 다음 위치에 지면이 있는지 확인
         if (CheckGround(nextPosition))
         {
             // X, Z축 이동
@@ -269,28 +276,6 @@ public class Enemy : MonoBehaviour
     }
 
 
-    void ShootProjectile()
-    {
-        if (projectilePrefab != null && firePoint != null)
-        {
-            // 💡 회전 로직: 플레이어의 Y 좌표를 적의 Y 좌표로 고정 (수직 회전 방지)
-            Vector3 lookTarget = player.position;
-            lookTarget.y = transform.position.y;
-
-            transform.LookAt(lookTarget); // 수평으로만 회전합니다.
-
-            GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
-
-            EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
-            if (ep != null)
-            {
-                // 투사체의 발사 방향은 플레이어의 실제 위치(Y축 포함)를 향해야 합니다.
-                Vector3 dir = (player.position - firePoint.position).normalized;
-                ep.SetDirection(dir);
-            }
-        }
-    }
-
     private void StartSuicideCountdown()
     {
         if (suicideCoroutine == null)
@@ -301,9 +286,9 @@ public class Enemy : MonoBehaviour
 
     IEnumerator SuicideCountdown()
     {
+        // 💡 자폭 전 경고 효과 로직 (유지)
         if (enemyRenderer != null)
         {
-            // 빛나는 시각 효과 적용 (1회)
             enemyRenderer.material.color = warningColor;
         }
 
@@ -327,8 +312,6 @@ public class Enemy : MonoBehaviour
         // 1. 적 주변의 콜라이더 검색 (3m 반경)
         Collider[] hitColliders = Physics.OverlapSphere(transform.position, explosionRadius);
 
-        int tilesDestroyed = 0;
-
         // 2. 검색된 모든 콜라이더를 순회하며 타일 파괴 및 플레이어 공격
         foreach (var hitCollider in hitColliders)
         {
@@ -338,7 +321,7 @@ public class Enemy : MonoBehaviour
                 PlayerController playerScript = hitCollider.GetComponent<PlayerController>();
                 if (playerScript != null)
                 {
-                    playerScript.TakeDamage(explosionDamage); // 💡 플레이어에게 10의 피해 적용
+                    playerScript.TakeDamage(explosionDamage); // 플레이어에게 10의 피해 적용
                     Debug.Log($"자폭 피해! 플레이어에게 {explosionDamage} 데미지를 입혔습니다.");
                 }
             }
@@ -356,13 +339,12 @@ public class Enemy : MonoBehaviour
                 tileScript.collapseDelay = 0.001f;
 
                 tileScript.StartDelayedCollapse();
-                tilesDestroyed++;
             }
         }
 
-        Debug.Log($"자폭: 주변 {explosionRadius}m 내 {tilesDestroyed}개 타일을 즉시 파괴했습니다.");
+        Debug.Log($"자폭: 주변 {explosionRadius}m 내 타일을 즉시 파괴했습니다.");
 
-        // 마지막으로, 적을 제거합니다. (Die()가 호출되어 즉시 파괴됨)
+        // 마지막으로, 적을 제거합니다.
         Die();
     }
 
@@ -373,7 +355,6 @@ public class Enemy : MonoBehaviour
         if (other.CompareTag("DeadZone"))
         {
             Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
-            // Rigidbody의 Kinematic을 해제하여 떨어지게 하고 2초 후 최종 파괴합니다.
             Die();
         }
     }

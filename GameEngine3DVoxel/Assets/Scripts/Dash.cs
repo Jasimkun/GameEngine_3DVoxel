@@ -66,8 +66,10 @@ public class Dash : MonoBehaviour
 
         lastPushTime = -pushCooldown; // 게임 시작 시 즉시 공격 가능
 
-        // EnemyManager 연동 (있다면)
-        // if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
+        if (EnemyManager.Instance != null)
+        {
+            EnemyManager.Instance.RegisterEnemy();
+        }
     }
 
     void Update()
@@ -129,8 +131,11 @@ public class Dash : MonoBehaviour
 
     void Die()
     {
-        // EnemyManager 연동 (있다면)
-        // if (EnemyManager.Instance != null) { EnemyManager.Instance.UnregisterEnemy(); }
+        if (EnemyManager.Instance != null)
+        {
+            EnemyManager.Instance.UnregisterEnemy();
+        }
+
         Destroy(gameObject);
     }
 

@@ -219,7 +219,7 @@ GameObject:
   - component: {fileID: 6262453907604008002}
   - component: {fileID: 4323443400006276090}
   - component: {fileID: 6472674197691392299}
-  - component: {fileID: 8167440199213073130}
+  - component: {fileID: 2622733721161338168}
   m_Layer: 0
   m_Name: TNT
   m_TagString: Enemy
@@ -264,9 +264,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.35
-  m_Height: 1.34
+  m_Height: 0.9
   m_Direction: 1
-  m_Center: {x: 0, y: 0.83, z: 0.09}
+  m_Center: {x: -0.05, y: 0.83, z: 0}
 --- !u!54 &6472674197691392299
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -294,7 +294,7 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!114 &8167440199213073130
+--- !u!114 &2622733721161338168
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -308,18 +308,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   state: 0
   movespeed: 2
-  traceRange: 25
-  maxAttackRange: 20
-  minAttackRange: 10
-  bombVoxelPrefab: {fileID: 5636846853932748624, guid: 939b9e261c23b16438c5408c690d2770,
-    type: 3}
-  firePoint: {fileID: 8240967186303180834}
-  attackCooldown: 3
-  bombDamage: 5
-  launchSpeed: 15
-  launchAngle: 45
+  traceRange: 15
+  attackRange: 6
   groundCheckDistance: 1
   groundOffset: 0.1
+  attackCooldown: 1.5
+  projectilePrefab: {fileID: 3351031294612343199, guid: fef3814b701b8674080d85d9eeaa3c38,
+    type: 3}
+  firePoint: {fileID: 8240967186303180834}
   maxHP: 10
   currentHP: 0
   hpSlider: {fileID: 4108449116979658776}
