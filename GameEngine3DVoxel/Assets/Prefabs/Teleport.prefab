@@ -322,10 +322,13 @@ MonoBehaviour:
   teleportCooldown: 5
   teleportDistance: 2
   maxTeleportAttempts: 10
+  attackEffectPrefab: {fileID: 5503505460791601945, guid: 78b927fed420fbc46a65e98dffe135cc,
+    type: 3}
+  teleportEffectPrefab: {fileID: 0}
   groundCheckDistance: 1
   groundOffset: 0.1
-  attackCooldown: 1.5
-  attackDamage: 3
+  attackCooldown: 2
+  attackDamage: 2
   maxHP: 15
   currentHP: 0
   hpSlider: {fileID: 2500882787318922813}

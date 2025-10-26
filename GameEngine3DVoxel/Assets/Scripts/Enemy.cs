@@ -322,7 +322,7 @@ public class Enemy : MonoBehaviour, IDamageable
                 if (playerScript != null)
                 {
                     playerScript.TakeDamage(explosionDamage); // 플레이어에게 10의 피해 적용
-                    Debug.Log($"자폭 피해! 플레이어에게 {explosionDamage} 데미지를 입혔습니다.");
+                    //Debug.Log($"자폭 피해! 플레이어에게 {explosionDamage} 데미지를 입혔습니다.");
                 }
             }
 
@@ -342,7 +342,7 @@ public class Enemy : MonoBehaviour, IDamageable
             }
         }
 
-        Debug.Log($"자폭: 주변 {explosionRadius}m 내 타일을 즉시 파괴했습니다.");
+        //Debug.Log($"자폭: 주변 {explosionRadius}m 내 타일을 즉시 파괴했습니다.");
 
         // 마지막으로, 적을 제거합니다.
         Die();
@@ -354,7 +354,7 @@ public class Enemy : MonoBehaviour, IDamageable
         // DeadZone 태그를 가진 오브젝트와 충돌했는지 확인합니다.
         if (other.CompareTag("DeadZone"))
         {
-            Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
+            //Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
             Die();
         }
     }

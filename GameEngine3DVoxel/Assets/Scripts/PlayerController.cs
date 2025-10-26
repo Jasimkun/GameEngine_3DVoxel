@@ -65,10 +65,16 @@ public class PlayerController : MonoBehaviour
     [Header("Respawn Settings")]
     private Vector3 startPosition;
 
+    // 📢 1. 복셀 애니메이션을 위한 Animator 변수 추가 (NekoController에서 가져옴)
+    private Animator anim;
+
     void Start()
     {
         controller = GetComponent<CharacterController>();
         pov = virtualCam.GetCinemachineComponent<CinemachinePOV>();
+
+        // 📢 2. Animator 컴포넌트 가져오기 (NekoController의 Start()에서 가져옴)
+        anim = GetComponentInChildren<Animator>();
 
         // 📢 HP 초기화
         currentHP = maxHP;
@@ -148,6 +154,23 @@ public class PlayerController : MonoBehaviour
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
+        // 📢 3. NekoController의 애니메이션 로직을 여기에 추가!
+        // ---------------------------------------------------
+        if (anim != null) // Animator가 있는지 확인
+        {
+            // x(Horizontal) 또는 z(Vertical) 입력 값이 0이 아니면 (즉, 움직이고 있으면)
+            if (x != 0f || z != 0f)
+            {
+                anim.SetInteger("Walk", 1); // 걷기 애니메이션 재생
+            }
+            else
+            {
+                anim.SetInteger("Walk", 0); // 멈춤 (Idle) 애니메이션
+            }
+        }
+        // ---------------------------------------------------
+
+
         // === 이동 및 회전 로직 ===
         Vector3 camForward = virtualCam.transform.forward;
         camForward.y = 0;
@@ -174,7 +197,7 @@ public class PlayerController : MonoBehaviour
     {
         if (other.CompareTag("DeadZone"))
         {
-            Debug.Log("DeadZone에 진입! 즉시 리스폰합니다.");
+            Debug.Log("으악!");
             Respawn();
         }
     }
@@ -228,7 +251,7 @@ public class PlayerController : MonoBehaviour
         // 현재 HP가 목표치(50% HP)보다 높으면 회복하지 않습니다.
         if (currentHP >= targetHP)
         {
-            Debug.Log("이미 HP가 회복 목표치보다 높습니다.");
+            //Debug.Log("이미 HP가 회복 목표치보다 높습니다.");
             return;
         }
 
@@ -238,14 +261,14 @@ public class PlayerController : MonoBehaviour
         // 슬라이더 업데이트 (maxValue가 maxHP로 설정되어 있으므로, value에 currentHP를 바로 넣습니다)
         hpSlider.value = currentHP;
 
-        Debug.Log("플레이어가 " + currentHP + "까지 회복되었습니다.");
+        Debug.Log("체럭이 " + currentHP + "까지 회복되었어!");
     }
 
     // 📢 (새로 추가) 스폰 포인트 갱신 함수
     public void UpdateSpawnPoint(Vector3 newSpawnPosition)
     {
         startPosition = newSpawnPosition;
-        Debug.Log("새로운 스폰 포인트가 설정되었습니다: " + newSpawnPosition);
+        //Debug.Log("새로운 스폰 포인트가 설정되었습니다: " + newSpawnPosition);
     }
 
 

@@ -38,8 +38,8 @@ public class PlayerTileDetector : MonoBehaviour
             // 💡 2. 스킬 사용 후, isSkillUsed를 true로 설정하여 재사용을 방지합니다.
             isSkillUsed = true;
 
-            Debug.Log($"주변 {searchRadius}m 반경 타일의 붕괴 시간을 {newCollapseDelay}초로 변경했습니다.");
-            Debug.Log("❗ 이 스킬은 씬에서 한 번만 사용할 수 있습니다.");
+            Debug.Log($"[SYSTEM] 타일의 붕괴 속도가 늦어집니다.");
+            Debug.Log("이 스킬은 레벨마다 한 번씩이야!");
         }
     }
 

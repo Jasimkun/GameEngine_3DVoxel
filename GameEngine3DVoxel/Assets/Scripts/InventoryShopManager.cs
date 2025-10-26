@@ -19,6 +19,9 @@ public class InventoryShopManager : MonoBehaviour
     public bool IsPanelOpen { get; private set; } = false;
     private PlayerController currentPlayer;
 
+    // 📢 1. PlayerShooting 참조 변수 추가 (무기 아이콘 업데이트용)
+    private PlayerShooting currentPlayerShooting;
+
     void Start()
     {
         if (unifiedPanel != null)
@@ -32,6 +35,12 @@ public class InventoryShopManager : MonoBehaviour
         currentPlayer = player;
         IsPanelOpen = !IsPanelOpen;
 
+        // 📢 2. PlayerShooting 참조를 가져옵니다 (PlayerController와 같은 오브젝트에 있다고 가정)
+        if (currentPlayerShooting == null && player != null)
+        {
+            currentPlayerShooting = player.GetComponent<PlayerShooting>();
+        }
+
         if (unifiedPanel != null)
         {
             unifiedPanel.SetActive(IsPanelOpen);
@@ -42,6 +51,12 @@ public class InventoryShopManager : MonoBehaviour
             Time.timeScale = 0f;
             Cursor.lockState = CursorLockMode.None;
             UpdateStats(currentPlayer);
+
+            // 📢 3. 인벤토리를 열 때, 무기 아이콘 업데이트 함수 호출!
+            if (currentPlayerShooting != null)
+            {
+                currentPlayerShooting.UpdateInventoryWeaponIcons();
+            }
         }
         else
         {
@@ -56,6 +71,8 @@ public class InventoryShopManager : MonoBehaviour
 
     public void UpdateStats(PlayerController player)
     {
+        if (player == null) return; // 널 체크 추가
+
         // 경험치 표시
         if (expDisplay != null) expDisplay.text = $"EXP: {player.currentEXP}";
 
@@ -75,7 +92,7 @@ public class InventoryShopManager : MonoBehaviour
         {
             // player.attackUpgradeLevelCost 변수 사용
             attackStatDisplay.text =
-               $"Attack: {player.attackDamage} (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {player.attackUpgradeLevelCost} Level)";
+                $"Attack: {player.attackDamage} (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {player.attackUpgradeLevelCost} Level)";
         }
     }
 

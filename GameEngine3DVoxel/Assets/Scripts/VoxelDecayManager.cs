@@ -59,7 +59,7 @@ public class VoxelDecayManager : MonoBehaviour
     {
         // 현재 타이머에 추가 시간을 더합니다.
         timeModifier += timeToAdd;
-        Debug.Log($"타일 타이머 연장: {gameObject.name}의 붕괴 시간이 {timeToAdd}초 연장되었습니다. 총 지연 시간: {timeModifier}초");
+        //Debug.Log($"타일 타이머 연장: {gameObject.name}의 붕괴 시간이 {timeToAdd}초 연장되었습니다. 총 지연 시간: {timeModifier}초");
 
         // 이미 붕괴 과정이 시작되었더라도 타이머 연장이 가능해야 합니다.
         // 현재 코루틴을 중지하고 새로운 타이머로 다시 시작할 필요가 있습니다.
@@ -103,7 +103,7 @@ public class VoxelDecayManager : MonoBehaviour
         }
 
         // 5초가 경과한 후 (타이머가 끝난 후)
-        Debug.Log($"타일 붕괴 완료: {gameObject.name}이 붕괴되었습니다.");
+        //Debug.Log($"타일 붕괴 완료: {gameObject.name}이 붕괴되었습니다.");
 
         // 최종적으로 빨간색 불투명으로 설정
         tileMaterial.color = decayColor;

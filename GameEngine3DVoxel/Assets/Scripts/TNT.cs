@@ -193,7 +193,7 @@ public class TNT : MonoBehaviour, IDamageable
         // 1. DeadZone에 닿았는지 확인
         if (other.CompareTag("DeadZone"))
         {
-            Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
+            //Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
             Die();
             return;
         }

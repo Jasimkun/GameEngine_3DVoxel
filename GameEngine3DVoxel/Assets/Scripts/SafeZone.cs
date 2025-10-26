@@ -7,7 +7,7 @@ public class SafeZone : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
 
-        Debug.Log("!!! 트리거 감지 성공! 충돌한 오브젝트: " + other.name);
+        //Debug.Log("!!! 트리거 감지 성공! 충돌한 오브젝트: " + other.name);
 
         // 1. 충돌한 오브젝트가 "Player" 태그를 가졌는지 확인합니다.
         if (other.CompareTag("Player"))
@@ -31,7 +31,7 @@ public class SafeZone : MonoBehaviour
             if (currentHP_Percentage <= 0.6f)
             {
                 // 60% 이하일 경우
-                Debug.Log("HP가 60% 이하입니다. 50%까지 회복합니다.");
+                Debug.Log("[SYSTEM] HP가 60% 이하입니다. 50%까지 회복합니다.");
 
                 // 50% (절반) HP 계산
                 int targetHP = player.maxHP / 2;
@@ -42,7 +42,7 @@ public class SafeZone : MonoBehaviour
             else
             {
                 // 60% 초과일 경우
-                Debug.Log("HP가 60%를 초과합니다. 스폰 포인트만 갱신합니다.");
+                Debug.Log("[SYSTEM] 스폰 포인트를 갱신합니다.");
             }
         }
     }

@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UI; // Image 컴포넌트를 사용하기 위해 추가
 
 public class PlayerShooting : MonoBehaviour
 {
@@ -21,6 +21,11 @@ public class PlayerShooting : MonoBehaviour
     public Sprite swordCooldownSprite; // 칼 모드 (쿨타임 O)일 때 사용할 스프라이트
 
     private bool isMeleeMode = false; // 📢 현재 칼 모드인지 추적 (false = 총, true = 칼)
+
+    // 📢 인벤토리 UI에 연결할 무기 아이콘 추가
+    [Header("Inventory UI")]
+    public GameObject inventoryGunIcon;   // 인벤토리의 총 아이콘 (GameObject)
+    public GameObject inventorySwordIcon; // 인벤토리의 칼 아이콘 (GameObject)
 
     // --- 칼 (Melee/Sword) 공격 변수 ---
     [Header("Sword Settings")]
@@ -142,6 +147,30 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
+    // 📢 인벤토리가 열릴 때 호출될 함수 (새로 추가!)
+    public void UpdateInventoryWeaponIcons()
+    {
+        // 널 체크
+        if (inventoryGunIcon == null || inventorySwordIcon == null)
+        {
+            Debug.Log("인벤토리 무기 아이콘이 연결되지 않았습니다.");
+            return;
+        }
+
+        if (isMeleeMode)
+        {
+            // 칼 모드일 때: 칼 아이콘 켜기, 총 아이콘 끄기
+            inventorySwordIcon.SetActive(true);
+            inventoryGunIcon.SetActive(false);
+        }
+        else
+        {
+            // 총 모드일 때: 총 아이콘 켜기, 칼 아이콘 끄기
+            inventoryGunIcon.SetActive(true);
+            inventorySwordIcon.SetActive(false);
+        }
+    }
+
     // ===========================================
     // 통합 공격 로직 (좌클릭 시 호출)
     // ===========================================
@@ -155,7 +184,7 @@ public class PlayerShooting : MonoBehaviour
             }
             else
             {
-                Debug.Log("칼 공격 쿨타임 중입니다.");
+                //Debug.Log("칼 공격 쿨타임 중입니다.");
             }
         }
         else
@@ -184,32 +213,28 @@ public class PlayerShooting : MonoBehaviour
 
         Vector3 origin = firePoint.position;
 
-        Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
+        //Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
 
         Collider[] hitColliders = Physics.OverlapSphere(origin, meleeRange);
 
-        Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
+        //Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
 
         foreach (var hitCollider in hitColliders)
         {
-            Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
+            //Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
 
             if (hitCollider.CompareTag("Enemy"))
             {
-                // 🔥🔥 핵심 수정! 🔥🔥
-                // Enemy 스크립트 대신 IDamageable "신분증"을 찾습니다.
                 IDamageable damageable = hitCollider.GetComponent<IDamageable>();
 
                 if (damageable != null)
                 {
-                    // "신분증"이 있다면, 그게 무슨 종류의 적이든 TakeDamage를 호출!
                     damageable.TakeDamage(playerController.attackDamage);
-                    Debug.Log("✅ 칼 공격 성공: " + hitCollider.name + "에게 " + playerController.attackDamage + " 피해를 입혔습니다.");
+                    //Debug.Log("✅ 칼 공격 성공: " + hitCollider.name + "에게 " + playerController.attackDamage + " 피해를 입혔습니다.");
                 }
                 else
                 {
-                    // 📢 이제 이 경고는 "Enemy 태그는 있지만, IDamageable 신분증이 없다"는 뜻이 됩니다.
-                    Debug.LogWarning("❌ Enemy 태그는 있지만 IDamageable 스크립트가 없습니다: " + hitCollider.name);
+                    //Debug.LogWarning("❌ Enemy 태그는 있지만 IDamageable 스크립트가 없습니다: " + hitCollider.name);
                 }
             }
         }
@@ -239,7 +264,7 @@ public class PlayerShooting : MonoBehaviour
         if (projectileComponent != null)
         {
             projectileComponent.SetDamage(playerController.attackDamage);
-            Debug.Log("총 공격: 투사체에 " + playerController.attackDamage + " 데미지를 설정했습니다.");
+            //Debug.Log("총 공격: 투사체에 " + playerController.attackDamage + " 데미지를 설정했습니다.");
         }
     }
 

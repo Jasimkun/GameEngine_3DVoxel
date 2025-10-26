@@ -190,7 +190,7 @@ public class Fire : MonoBehaviour, IDamageable
     {
         if (other.CompareTag("DeadZone"))
         {
-            Debug.Log("FireEnemy가 DeadZone에 진입! 사망 처리합니다.");
+            //Debug.Log("FireEnemy가 DeadZone에 진입! 사망 처리합니다.");
             Die();
             return;
         }

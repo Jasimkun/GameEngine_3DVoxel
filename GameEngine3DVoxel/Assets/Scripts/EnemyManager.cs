@@ -38,14 +38,14 @@ public class EnemyManager : MonoBehaviour
     public void RegisterEnemy()
     {
         activeEnemyCount++;
-        Debug.Log("새 적 등록됨. 현재 적 수: " + activeEnemyCount);
+        Debug.Log(activeEnemyCount + "만큼의 적을 처치해야 해!");
     }
 
     // 💡 적이 파괴될 때 Enemy 스크립트에서 호출됨
     public void UnregisterEnemy()
     {
         activeEnemyCount--;
-        Debug.Log("적 파괴됨. 현재 적 수: " + activeEnemyCount);
+        Debug.Log("적을 처치했어. 현재 남은 적 수는 " + activeEnemyCount + "!");
 
         // 📢 핵심 경험치 로직 추가
         if (playerController != null)
@@ -53,7 +53,7 @@ public class EnemyManager : MonoBehaviour
             // PlayerController에 경험치를 추가하는 메서드를 호출합니다.
             // ⚠️ 이 로직이 작동하려면 PlayerController에 'AddExperience(int amount)' 메서드가 있어야 합니다.
             playerController.AddExperience(EXP_PER_ENEMY);
-            Debug.Log($"플레이어에게 경험치 {EXP_PER_ENEMY} 부여됨.");
+            //Debug.Log($"경험치를 {EXP_PER_ENEMY} 획득했어!");
         }
         else
         {
@@ -63,7 +63,7 @@ public class EnemyManager : MonoBehaviour
         // 💡 핵심 로직: 적이 0이 되면 CloudCore에 알림
         if (activeEnemyCount <= 0)
         {
-            Debug.Log("모든 적이 파괴되었습니다! 구름 핵 활성화.");
+            Debug.Log("모든 적을 처치했어! 이제 구름 핵을 파괴하면 돼!");
             if (cloudCore != null)
             {
                 cloudCore.ActivateAttackability();
