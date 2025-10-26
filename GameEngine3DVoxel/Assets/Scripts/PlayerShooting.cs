@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI; // Image 컴포넌트를 사용하기 위해 추가
+using UnityEngine.UI;
 
 public class PlayerShooting : MonoBehaviour
 {
@@ -27,6 +27,7 @@ public class PlayerShooting : MonoBehaviour
     public float meleeCooldown = 1f;    // 칼 공격 쿨타임 (1초)
     private bool canMeleeAttack = true; // 칼 공격 가능 여부
     public float meleeRange = 2.0f;     // 근접 공격 범위 (유니티에서 조정 가능)
+    public GameObject swordEffectPrefab; // 📢 이펙트 프리팹 변수
 
     // --- 무기 모델 관리 변수 ---
     [Header("Weapon Models")]
@@ -34,6 +35,11 @@ public class PlayerShooting : MonoBehaviour
     public GameObject swordModelPrefab;  // 칼 모델 프리팹
     private GameObject gunModelInstance;  // 생성된 총 모델 인스턴스
     private GameObject swordModelInstance; // 생성된 칼 모델 인스턴스
+
+    // 📢 무기 모델 회전 오프셋 추가
+    [Header("Weapon Model Rotation")]
+    public Vector3 gunRotationOffset = new Vector3(0, 90, 0); // 인스펙터에서 조정 가능
+    public Vector3 swordRotationOffset = new Vector3(0, 0, 0); // 인스펙터에서 조정 가능
 
     Camera cam;
 
@@ -52,76 +58,86 @@ public class PlayerShooting : MonoBehaviour
             Debug.LogError("PlayerController 스크립트를 찾을 수 없습니다. 데미지 정보를 가져올 수 없습니다.");
         }
 
-        // 📢 무기 모델 인스턴스화 및 초기 위치 설정
+        // 무기 모델 인스턴스화 및 로컬 회전 초기화
         if (firePoint != null)
         {
             if (gunModelPrefab != null)
             {
-                // 총 모델을 FirePoint의 자식으로 생성
-                gunModelInstance = Instantiate(gunModelPrefab, firePoint.position, firePoint.rotation, firePoint);
+                gunModelInstance = Instantiate(gunModelPrefab, firePoint.position, Quaternion.identity, firePoint);
             }
             if (swordModelPrefab != null)
             {
-                // 칼 모델을 FirePoint의 자식으로 생성
-                swordModelInstance = Instantiate(swordModelPrefab, firePoint.position, firePoint.rotation, firePoint);
+                swordModelInstance = Instantiate(swordModelPrefab, firePoint.position, Quaternion.identity, firePoint);
             }
         }
 
-        // 📢 시작 시 무기 UI 및 모델을 총 모드로 초기화합니다.
+        // 로컬 회전 오프셋을 적용하여 무기 기울기 설정
+        ApplyModelRotation();
+
+        // 시작 시 무기 UI 및 모델을 총 모드로 초기화합니다.
         UpdateWeaponUI();
         UpdateWeaponModel();
     }
 
+    // 로컬 회전 오프셋 적용 함수
+    void ApplyModelRotation()
+    {
+        if (gunModelInstance != null)
+        {
+            gunModelInstance.transform.localRotation = Quaternion.Euler(gunRotationOffset);
+        }
+        if (swordModelInstance != null)
+        {
+            swordModelInstance.transform.localRotation = Quaternion.Euler(swordRotationOffset);
+        }
+    }
+
+
     void Update()
     {
-        // 📢 Z 키로 무기 전환 로직 (칼 <-> 총)
+        // Z 키로 무기 전환 로직 (칼 <-> 총)
         if (Input.GetKeyDown(KeyCode.Z))
         {
             isMeleeMode = !isMeleeMode;
             UpdateWeaponUI();
-            UpdateWeaponModel(); // 📢 모델 전환 함수 호출
+            UpdateWeaponModel();
         }
 
-        // 📢 마우스 좌클릭 (0) - 현재 모드에 따라 공격 실행 (총 또는 칼)
+        // 마우스 좌클릭 (0) - 현재 모드에 따라 공격 실행 (총 또는 칼)
         if (Input.GetMouseButtonDown(0))
         {
             Attack();
         }
     }
 
-    // 📢 무기 모델 활성화/비활성화 함수
+    // 무기 모델 활성화/비활성화 함수
     private void UpdateWeaponModel()
     {
-        // 널 체크
         if (gunModelInstance == null && swordModelInstance == null) return;
 
         if (isMeleeMode)
         {
-            // 칼 모드: 칼 모델 활성화, 총 모델 비활성화
             if (swordModelInstance != null) swordModelInstance.SetActive(true);
             if (gunModelInstance != null) gunModelInstance.SetActive(false);
         }
         else
         {
-            // 총 모드: 총 모델 활성화, 칼 모델 비활성화
             if (gunModelInstance != null) gunModelInstance.SetActive(true);
             if (swordModelInstance != null) swordModelInstance.SetActive(false);
         }
     }
 
-    // 📢 무기 전환 및 쿨타임 상태를 반영하여 UI 업데이트
+    // 무기 전환 및 쿨타임 상태를 반영하여 UI 업데이트
     private void UpdateWeaponUI()
     {
         if (weaponImageUI == null) return;
 
         if (isMeleeMode)
         {
-            // 칼 모드: 쿨타임 상태에 따라 다른 스프라이트 사용
             weaponImageUI.sprite = canMeleeAttack ? swordReadySprite : swordCooldownSprite;
         }
         else
         {
-            // 총 모드: 총 스프라이트 사용
             weaponImageUI.sprite = gunSprite;
         }
     }
@@ -150,9 +166,8 @@ public class PlayerShooting : MonoBehaviour
 
 
     // ===========================================
-    // 근접 공격 (Melee/Sword) 로직 - 📢 디버그 추가됨!
+    // 근접 공격 (Melee/Sword) 로직 - 📢 IDamageable로 수정됨!
     // ===========================================
-
     void MeleeAttack()
     {
         if (playerController == null) return;
@@ -160,34 +175,41 @@ public class PlayerShooting : MonoBehaviour
         canMeleeAttack = false;
         StartCoroutine(MeleeCooldownCoroutine());
 
+        // 이펙트 생성 로직
+        if (swordEffectPrefab != null)
+        {
+            GameObject effectInstance = Instantiate(swordEffectPrefab, firePoint.position, firePoint.rotation);
+            Destroy(effectInstance, 2f);
+        }
+
         Vector3 origin = firePoint.position;
 
-        // 📢 디버그 1: 공격 시도 확인
         Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
-
 
         Collider[] hitColliders = Physics.OverlapSphere(origin, meleeRange);
 
-        // 📢 디버그 2: 감지된 오브젝트 수 확인
         Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
 
         foreach (var hitCollider in hitColliders)
         {
-            // 📢 디버그 3: 감지된 오브젝트 이름과 태그 확인
             Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
 
             if (hitCollider.CompareTag("Enemy"))
             {
-                Enemy enemy = hitCollider.GetComponent<Enemy>();
-                if (enemy != null)
+                // 🔥🔥 핵심 수정! 🔥🔥
+                // Enemy 스크립트 대신 IDamageable "신분증"을 찾습니다.
+                IDamageable damageable = hitCollider.GetComponent<IDamageable>();
+
+                if (damageable != null)
                 {
-                    enemy.TakeDamage(playerController.attackDamage);
+                    // "신분증"이 있다면, 그게 무슨 종류의 적이든 TakeDamage를 호출!
+                    damageable.TakeDamage(playerController.attackDamage);
                     Debug.Log("✅ 칼 공격 성공: " + hitCollider.name + "에게 " + playerController.attackDamage + " 피해를 입혔습니다.");
                 }
                 else
                 {
-                    // 📢 디버그 4: Enemy 태그는 있지만 Enemy 스크립트가 없는 경우
-                    Debug.LogWarning("❌ Enemy 태그는 있지만 Enemy 스크립트가 없습니다: " + hitCollider.name);
+                    // 📢 이제 이 경고는 "Enemy 태그는 있지만, IDamageable 신분증이 없다"는 뜻이 됩니다.
+                    Debug.LogWarning("❌ Enemy 태그는 있지만 IDamageable 스크립트가 없습니다: " + hitCollider.name);
                 }
             }
         }
@@ -229,7 +251,6 @@ public class PlayerShooting : MonoBehaviour
     {
         if (firePoint == null) return;
 
-        // 빨간색 와이어 구체로 근접 공격 범위 표시
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(firePoint.position, meleeRange);
     }

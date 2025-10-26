@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Fire : MonoBehaviour
+public class Fire : MonoBehaviour, IDamageable
 {
     // === 상태 열거형 (TNT와 동일하게 유지) ===
     public enum EnemyState { Idle, Trace, Attack, RunAway }

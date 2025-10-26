@@ -32,32 +32,32 @@ public class Projectile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // 1. Enemy 태그와 충돌했을 때
+        // 1. "Enemy" 태그와 충돌했을 때
         if (other.CompareTag("Enemy"))
         {
-            Enemy enemy = other.GetComponent<Enemy>();
-            if (enemy != null)
+            // 🔥🔥 핵심 수정! 🔥🔥
+            // Enemy 스크립트 대신 IDamageable "신분증"을 찾습니다.
+            IDamageable damageable = other.GetComponent<IDamageable>();
+
+            if (damageable != null)
             {
-                // 🔥 저장된 damageAmount 적용
-                enemy.TakeDamage(damageAmount);
+                // "신분증"이 있다면, 그게 무슨 종류의 적이든 TakeDamage를 호출!
+                damageable.TakeDamage(damageAmount);
             }
 
             Destroy(gameObject); // 총알 제거
         }
-        // 💡 2. CloudCore 태그와 충돌했을 때
+        // 💡 2. CloudCore 태그와 충돌했을 때 (이건 원래 로직 그대로 둡니다)
         else if (other.CompareTag("CloudCore"))
         {
             CloudCore core = other.GetComponent<CloudCore>();
 
             if (core != null)
             {
-                // CloudCore가 직접 피해를 받는 함수를 호출합니다.
-                // 🔥 저장된 damageAmount 적용
                 core.TakeDamageIfAttackable(damageAmount);
             }
 
             Destroy(gameObject); // 총알 제거
         }
-        // 💡 CloudCore에 닿았을 때도 총알은 제거됩니다.
     }
 }

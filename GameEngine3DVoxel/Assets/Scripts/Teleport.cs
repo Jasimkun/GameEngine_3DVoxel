@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Teleport : MonoBehaviour
+public class Teleport : MonoBehaviour, IDamageable
 {
     // === 상태 열거형 ===
     public enum EnemyState { Idle, Trace, Attack, Teleporting }
