@@ -4,23 +4,23 @@ using TMPro; // TMP 사용
 
 public class InventoryShopManager : MonoBehaviour
 {
-    // UI 요소: 인벤토리와 상점을 포함하는 단일 패널
-    [Header("통합 패널")] // Header 이름도 한국어로 변경 (선택 사항)
+    // 📢 UI 요소: 인벤토리와 상점을 포함하는 단일 패널
+    [Header("Unified Panel")]
     public GameObject unifiedPanel;
 
-    // UI 요소: 스탯 표시
-    [Header("스탯 표시 UI")] // Header 이름도 한국어로 변경 (선택 사항)
+    // 📢 UI 요소: 스탯 표시
+    [Header("Stat Display Elements")]
     public TextMeshProUGUI expDisplay;
     public TextMeshProUGUI levelDisplay;
     public TextMeshProUGUI hpStatDisplay;
     public TextMeshProUGUI attackStatDisplay;
-    public TextMeshProUGUI gunDamageDisplay;    // 총 공격력 텍스트
-    public TextMeshProUGUI swordDamageDisplay;  // 칼 공격력 텍스트
 
-    // 상태 변수
+    // 📢 상태 변수
     public bool IsPanelOpen { get; private set; } = false;
     private PlayerController currentPlayer;
-    private PlayerShooting currentPlayerShooting; // 무기 아이콘 업데이트용
+
+    // 📢 1. PlayerShooting 참조 변수 추가 (무기 아이콘 업데이트용)
+    private PlayerShooting currentPlayerShooting;
 
     void Start()
     {
@@ -35,7 +35,7 @@ public class InventoryShopManager : MonoBehaviour
         currentPlayer = player;
         IsPanelOpen = !IsPanelOpen;
 
-        // PlayerShooting 참조 가져오기
+        // 📢 2. PlayerShooting 참조를 가져옵니다 (PlayerController와 같은 오브젝트에 있다고 가정)
         if (currentPlayerShooting == null && player != null)
         {
             currentPlayerShooting = player.GetComponent<PlayerShooting>();
@@ -50,9 +50,9 @@ public class InventoryShopManager : MonoBehaviour
         {
             Time.timeScale = 0f;
             Cursor.lockState = CursorLockMode.None;
-            UpdateStats(currentPlayer); // 스탯 업데이트 호출
+            UpdateStats(currentPlayer);
 
-            // 무기 아이콘 업데이트 함수 호출
+            // 📢 3. 인벤토리를 열 때, 무기 아이콘 업데이트 함수 호출!
             if (currentPlayerShooting != null)
             {
                 currentPlayerShooting.UpdateInventoryWeaponIcons();
@@ -66,68 +66,51 @@ public class InventoryShopManager : MonoBehaviour
     }
 
     // ===============================================
-    // 📢 스탯 UI 업데이트 (한국어 텍스트로 변경!)
+    // 📢 스탯 UI 업데이트 (다음 업그레이드 비용 반영)
     // ===============================================
 
     public void UpdateStats(PlayerController player)
     {
-        if (player == null) return; // 널 체크
+        if (player == null) return; // 널 체크 추가
 
         // 경험치 표시
-        if (expDisplay != null) expDisplay.text = $"경험치: {player.currentEXP}";
+        if (expDisplay != null) expDisplay.text = $"EXP: {player.currentEXP}";
 
-        // 레벨 표시 (스킬 레벨)
-        if (levelDisplay != null) levelDisplay.text = $"스킬 레벨: {player.currentLevel}";
+        // 레벨 표시 (업그레이드 포인트 역할)
+        if (levelDisplay != null) levelDisplay.text = $"Skill Level: {player.currentLevel}";
 
-        // 체력 스탯 표시
+        // 체력 스탯 표시 (📢 다음 업그레이드 레벨 비용 사용)
         if (hpStatDisplay != null)
         {
-            // 예시: "체력: 82/100 (강화: +10 / 1 레벨 필요)"
+            // player.hpUpgradeLevelCost 변수 사용
             hpStatDisplay.text =
-                $"체력: {player.currentHP}/{player.maxHP} (강화: +{PlayerController.HP_UPGRADE_AMOUNT} / {player.hpUpgradeLevelCost} 레벨 필요)";
+                $"HP: {player.currentHP}/{player.maxHP} (+{PlayerController.HP_UPGRADE_AMOUNT} / {player.hpUpgradeLevelCost} Level)";
         }
 
-        // 공격력 스탯 표시 (업그레이드 비용)
+        // 공격력 스탯 표시 (📢 다음 업그레이드 레벨 비용 사용)
         if (attackStatDisplay != null)
         {
-            // 예시: "공격력 강화: (+1 / 1 레벨 필요)"
+            // player.attackUpgradeLevelCost 변수 사용
             attackStatDisplay.text =
-                $"공격력 강화: (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {player.attackUpgradeLevelCost} 레벨 필요)";
-        }
-
-        // 무기 공격력 계산
-        const int baseAttackDamage = 1; // 기본 공격력
-        int upgradedDamage = player.attackDamage - baseAttackDamage;
-        if (upgradedDamage < 0) upgradedDamage = 0;
-        string damageText = $"{baseAttackDamage} + {upgradedDamage}"; // "1 + X" 형태
-
-        // 총 공격력 텍스트 업데이트
-        if (gunDamageDisplay != null)
-        {
-            gunDamageDisplay.text = $"총 공격력: {damageText}";
-        }
-        // 칼 공격력 텍스트 업데이트
-        if (swordDamageDisplay != null)
-        {
-            swordDamageDisplay.text = $"칼 공격력: {damageText}";
+                $"Attack: {player.attackDamage} (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {player.attackUpgradeLevelCost} Level)";
         }
     }
 
-    // HP 업그레이드 버튼의 OnClick()에 연결
+    // 📢 HP 업그레이드 버튼의 OnClick()에 연결
     public void OnHPUpgradeButtonClicked()
     {
         if (currentPlayer != null && currentPlayer.TryUpgradeMaxHP())
         {
-            UpdateStats(currentPlayer);
+            // 로직은 PlayerController에서 처리됨
         }
     }
 
-    // 공격력 업그레이드 버튼의 OnClick()에 연결
+    // 📢 공격력 업그레이드 버튼의 OnClick()에 연결
     public void OnAttackUpgradeButtonClicked()
     {
         if (currentPlayer != null && currentPlayer.TryUpgradeAttackPower())
         {
-            UpdateStats(currentPlayer);
+            // 로직은 PlayerController에서 처리됨
         }
     }
 }
