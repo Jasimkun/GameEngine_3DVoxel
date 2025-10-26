@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class PlayerShooting : MonoBehaviour
 {
+    // 📢 1. PlayerController 참조 변수 추가
+    public PlayerController playerController;
+
     public GameObject projectilePrefab;
     public GameObject BoomPrefab;
     public Transform firePoint;
@@ -17,6 +20,18 @@ public class PlayerShooting : MonoBehaviour
     {
         cam = Camera.main;
         currentWeaponPrefab = projectilePrefab;
+
+        // 📢 2. PlayerController 참조를 자동으로 찾습니다 (PlayerController가 같은 GameObject에 있다고 가정)
+        if (playerController == null)
+        {
+            playerController = GetComponent<PlayerController>();
+        }
+
+        // 📢 PlayerController가 없으면 오류 메시지를 출력합니다.
+        if (playerController == null)
+        {
+            Debug.LogError("PlayerController 스크립트를 찾을 수 없습니다. 데미지 정보를 가져올 수 없습니다.");
+        }
     }
 
     void Update()
@@ -44,14 +59,28 @@ public class PlayerShooting : MonoBehaviour
 
     void Shoot()
     {
-        // 💡 1. Raycasting 로직을 제거하고 카메라의 정면 방향을 사용합니다.
-        //    (카메라가 곧 플레이어의 시선이라고 가정합니다.)
         Vector3 direction = cam.transform.forward;
 
-        // 💡 2. 투사체가 이 방향을 향하도록 회전시켜 생성합니다.
         GameObject proj = Instantiate(currentWeaponPrefab, firePoint.position, Quaternion.LookRotation(direction));
 
-        // 💡 참고: 만약 투사체에 Rigidbody나 스크립트가 있다면, 
-        //    해당 스크립트에 direction을 전달하여 움직임을 시작해야 합니다.
+        // 📢 3. 투사체에 데미지를 전달하는 핵심 로직 추가
+        if (playerController != null)
+        {
+            // 투사체가 'Projectile'인지 확인하고 데미지를 전달합니다.
+            // (폭탄도 Projectile을 사용하거나, Projectile과 유사한 SetDamage 함수가 있다고 가정)
+            Projectile projectileComponent = proj.GetComponent<Projectile>();
+
+            if (projectileComponent != null)
+            {
+                // 🔥 PlayerController의 attackDamage 값을 투사체에 설정
+                projectileComponent.SetDamage(playerController.attackDamage);
+            }
+            else
+            {
+                // BoomPrefab은 Projectile 컴포넌트가 없을 수 있으므로 이 메시지는 정상일 수 있습니다.
+                // BoomPrefab이 데미지를 받는 방법이 다르다면 해당 로직을 여기에 추가해야 합니다.
+                Debug.LogWarning(proj.name + "에 Projectile 컴포넌트가 없습니다. 데미지가 설정되지 않았을 수 있습니다.");
+            }
+        }
     }
 }

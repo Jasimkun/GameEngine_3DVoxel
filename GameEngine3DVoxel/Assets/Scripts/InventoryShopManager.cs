@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // 📢 TextMesh Pro 사용을 위한 네임스페이스 추가
+using TMPro; // TMP 사용
 
 public class InventoryShopManager : MonoBehaviour
 {
@@ -8,7 +8,7 @@ public class InventoryShopManager : MonoBehaviour
     [Header("Unified Panel")]
     public GameObject unifiedPanel;
 
-    // 📢 UI 요소: 스탯 표시 (TextMeshProUGUI로 변경)
+    // 📢 UI 요소: 스탯 표시
     [Header("Stat Display Elements")]
     public TextMeshProUGUI expDisplay;
     public TextMeshProUGUI levelDisplay;
@@ -21,16 +21,12 @@ public class InventoryShopManager : MonoBehaviour
 
     void Start()
     {
-        // 시작 시 패널은 닫혀있어야 합니다.
         if (unifiedPanel != null)
         {
             unifiedPanel.SetActive(false);
         }
     }
 
-    // ===============================================
-    // 📢 E 키 처리: 통합 패널 열기/닫기
-    // ===============================================
     public void ToggleInventoryShop(PlayerController player)
     {
         currentPlayer = player;
@@ -43,45 +39,43 @@ public class InventoryShopManager : MonoBehaviour
 
         if (IsPanelOpen)
         {
-            // 패널 열기: 시간 정지 및 커서 활성화
             Time.timeScale = 0f;
             Cursor.lockState = CursorLockMode.None;
-            UpdateStats(currentPlayer); // 스탯 정보를 UI에 업데이트
+            UpdateStats(currentPlayer);
         }
         else
         {
-            // 패널 닫기: 시간 재개 및 커서 잠금
             Time.timeScale = 1f;
             Cursor.lockState = CursorLockMode.Locked;
         }
     }
 
     // ===============================================
-    // 📢 스탯 UI 업데이트 (경험치 획득/업그레이드 시 호출)
+    // 📢 스탯 UI 업데이트 (다음 업그레이드 비용 반영)
     // ===============================================
 
     public void UpdateStats(PlayerController player)
     {
-        // 📢 .text 속성은 동일하게 사용합니다.
-
         // 경험치 표시
         if (expDisplay != null) expDisplay.text = $"EXP: {player.currentEXP}";
 
-        // 레벨 표시
-        if (levelDisplay != null) levelDisplay.text = $"Level: {player.currentLevel}";
+        // 레벨 표시 (업그레이드 포인트 역할)
+        if (levelDisplay != null) levelDisplay.text = $"Skill Level: {player.currentLevel}";
 
-        // 체력 스탯 표시
+        // 체력 스탯 표시 (📢 다음 업그레이드 레벨 비용 사용)
         if (hpStatDisplay != null)
         {
+            // player.hpUpgradeLevelCost 변수 사용
             hpStatDisplay.text =
-                $"HP: {player.currentHP}/{player.maxHP} (+{PlayerController.HP_UPGRADE_AMOUNT} / {PlayerController.HP_UPGRADE_COST} EXP)";
+                $"HP: {player.currentHP}/{player.maxHP} (+{PlayerController.HP_UPGRADE_AMOUNT} / {player.hpUpgradeLevelCost} Level)";
         }
 
-        // 공격력 스탯 표시
+        // 공격력 스탯 표시 (📢 다음 업그레이드 레벨 비용 사용)
         if (attackStatDisplay != null)
         {
+            // player.attackUpgradeLevelCost 변수 사용
             attackStatDisplay.text =
-               $"Attack: {player.attackPower} (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {PlayerController.ATTACK_UPGRADE_COST} EXP)";
+               $"Attack: {player.attackDamage} (+{PlayerController.ATTACK_UPGRADE_AMOUNT} / {player.attackUpgradeLevelCost} Level)";
         }
     }
 
@@ -90,7 +84,7 @@ public class InventoryShopManager : MonoBehaviour
     {
         if (currentPlayer != null && currentPlayer.TryUpgradeMaxHP())
         {
-            // TryUpgradeMaxHP 내부에서 이미 UpdateStats를 호출합니다.
+            // 로직은 PlayerController에서 처리됨
         }
     }
 
@@ -99,7 +93,7 @@ public class InventoryShopManager : MonoBehaviour
     {
         if (currentPlayer != null && currentPlayer.TryUpgradeAttackPower())
         {
-            // TryUpgradeAttackPower 내부에서 이미 UpdateStats를 호출합니다.
+            // 로직은 PlayerController에서 처리됨
         }
     }
 }

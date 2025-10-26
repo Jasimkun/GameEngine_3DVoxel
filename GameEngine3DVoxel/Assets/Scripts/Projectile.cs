@@ -7,6 +7,15 @@ public class Projectile : MonoBehaviour
     public float speed = 20f;  // 이동 속도
     public float lifeTime = 2f;    // 생존 시간 (초)
 
+    // 📢 플레이어로부터 받아올 데미지 값
+    private int damageAmount = 1;
+
+    // 📢 외부에서 데미지 값을 설정하는 Public 메서드 (플레이어 스크립트에서 호출)
+    public void SetDamage(int damage)
+    {
+        damageAmount = damage;
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -29,7 +38,8 @@ public class Projectile : MonoBehaviour
             Enemy enemy = other.GetComponent<Enemy>();
             if (enemy != null)
             {
-                enemy.TakeDamage(1); // 체력 1 감소
+                // 🔥 저장된 damageAmount 적용
+                enemy.TakeDamage(damageAmount);
             }
 
             Destroy(gameObject); // 총알 제거
@@ -41,15 +51,9 @@ public class Projectile : MonoBehaviour
 
             if (core != null)
             {
-                // CloudCore 스크립트의 OnTriggerEnter 로직을 호출하는 대신, 
-                // 여기서 직접 피해를 입히도록 수정합니다.
-
-                // 🚨 주의: CloudCore 스크립트가 공격 가능한지 확인해야 합니다.
-                // CloudCore 스크립트에 IsAttackable 속성이나 GetAttackableStatus() 함수가 있다고 가정합니다.
-
                 // CloudCore가 직접 피해를 받는 함수를 호출합니다.
-                // 이 함수는 CloudCore 내에서 isAttackable을 체크합니다.
-                core.TakeDamageIfAttackable(1);
+                // 🔥 저장된 damageAmount 적용
+                core.TakeDamageIfAttackable(damageAmount);
             }
 
             Destroy(gameObject); // 총알 제거
