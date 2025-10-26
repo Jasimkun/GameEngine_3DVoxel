@@ -310,13 +310,11 @@ MonoBehaviour:
   movespeed: 2
   traceRange: 15
   attackRange: 6
-  groundCheckDistance: 1
-  groundOffset: 0.1
   attackCooldown: 1.5
   projectilePrefab: {fileID: 3351031294612343199, guid: fef3814b701b8674080d85d9eeaa3c38,
     type: 3}
   firePoint: {fileID: 8240967186303180834}
-  maxHP: 10
+  maxHP: 15
   currentHP: 0
   hpSlider: {fileID: 4108449116979658776}
 --- !u!1 &6339597960517106182

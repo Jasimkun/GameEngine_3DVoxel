@@ -518,10 +518,7 @@ MonoBehaviour:
   warningColor: {r: 1, g: 1, b: 1, a: 1}
   explosionDamage: 10
   attackCooldown: 1.5
-  projectilePrefab: {fileID: 3351031294612343199, guid: fef3814b701b8674080d85d9eeaa3c38,
-    type: 3}
-  firePoint: {fileID: 8240967186303180834}
-  maxHP: 5
+  maxHP: 10
   currentHP: 0
   hpSlider: {fileID: 4190739656619273114}
 --- !u!1001 &7504137357467319207

@@ -25,7 +25,7 @@ public class PlayerController : MonoBehaviour
     private const int EXP_INCREASE_PER_LEVEL = 10;
 
     // 📢 플레이어가 적에게 주는 데미지/공격력 (public: InventoryShopManager 접근용)
-    public int attackDamage = 1; // 변수명을 attackPower에서 attackDamage로 변경하여 역할 명확화
+    public int attackDamage = 1;
 
     // 📢 업그레이드 비용: 다음 업그레이드에 필요한 레벨 (public: InventoryShopManager 접근용)
     public int hpUpgradeLevelCost = 1;
@@ -70,10 +70,10 @@ public class PlayerController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         pov = virtualCam.GetCinemachineComponent<CinemachinePOV>();
 
-        // 📢 시작 시 현재 HP를 최대 HP로 설정 (요청하신 내용, 이미 구현되어 있었습니다!)
+        // 📢 HP 초기화
         currentHP = maxHP;
         hpSlider.maxValue = maxHP;
-        hpSlider.value = currentHP; // hpSlider.value = 1f; 대신 currentHP를 사용하면 명확합니다.
+        hpSlider.value = currentHP;
 
         startPosition = transform.position;
 
@@ -196,14 +196,16 @@ public class PlayerController : MonoBehaviour
         velocity = Vector3.zero;
 
         currentHP = maxHP;
-        hpSlider.value = currentHP; // maxHP 대신 currentHP를 사용하면 명확합니다.
+        hpSlider.value = currentHP;
     }
 
-    // === 피해 및 사망 로직 (📢 연쇄 오류의 원인이었던 함수 복구) ===
+    // === 피해 및 사망 로직 ===
     public void TakeDamage(int damage)
     {
         currentHP -= damage;
-        hpSlider.value = (float)currentHP / maxHP;
+
+        // 📢 HP 슬라이더 표시 문제 해결: 슬라이더 value에 실제 currentHP 값을 대입
+        hpSlider.value = currentHP;
 
         if (currentHP <= 0)
         {
@@ -216,7 +218,7 @@ public class PlayerController : MonoBehaviour
         Respawn();
     }
 
-    // === DOT 로직 (📢 연쇄 오류의 원인이었던 함수 복구) ===
+    // === DOT 로직 ===
     public void StartDamageOverTime(int damage, float duration, float interval)
     {
         if (fireDotCoroutine != null)

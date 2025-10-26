@@ -332,7 +332,7 @@ MonoBehaviour:
   groundCheckDistance: 1
   groundOffset: 0.1
   hpSlider: {fileID: 8745181766014401437}
-  maxHP: 5
+  maxHP: 10
   currentHP: 0
 --- !u!1 &5790798484834263363
 GameObject:

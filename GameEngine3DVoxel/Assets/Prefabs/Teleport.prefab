@@ -326,7 +326,7 @@ MonoBehaviour:
   groundOffset: 0.1
   attackCooldown: 1.5
   attackDamage: 3
-  maxHP: 10
+  maxHP: 15
   currentHP: 0
   hpSlider: {fileID: 2500882787318922813}
 --- !u!1 &5915473856082709714
