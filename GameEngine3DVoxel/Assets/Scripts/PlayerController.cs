@@ -27,9 +27,12 @@ public class PlayerController : MonoBehaviour
     private int currentHP;
     public Slider hpSlider;
 
+    // === DOT (Damage Over Time) 설정 변수 ===
+    private Coroutine fireDotCoroutine; // 💡 지속 피해 코루틴 참조
+
     // === 리스폰 설정 변수 ===
     [Header("Respawn Settings")]
-    private Vector3 startPosition; // 💡 시작 위치만 저장
+    private Vector3 startPosition; // 시작 위치만 저장
 
     // Start is called before the first frame update
     void Start()
@@ -43,8 +46,8 @@ public class PlayerController : MonoBehaviour
         // 시작 위치를 저장합니다.
         startPosition = transform.position;
 
-        // 💡 CharacterController를 사용할 경우, Rigidbody를 추가하고 Kinematic을 체크해야 
-        //    OnTriggerEnter가 안정적으로 작동합니다. (에디터에서 수동으로 추가 권장)
+        // CharacterController를 사용할 경우, Rigidbody를 추가하고 Kinematic을 체크해야 
+        // OnTriggerEnter가 안정적으로 작동합니다. (에디터에서 수동으로 추가 권장)
     }
 
     // Update is called once per framed
@@ -128,12 +131,29 @@ public class PlayerController : MonoBehaviour
             Debug.Log("DeadZone에 진입! 즉시 리스폰합니다.");
             Respawn();
         }
+
+        // 💡 Projectile과의 충돌 감지 (Fire 적의 투사체 포함)
+        // 💡 투사체 스크립트에 DOT 정보를 포함하는 함수가 있다고 가정합니다.
+        // if (other.GetComponent<FireProjectile>() != null)
+        // {
+        //     // FireProjectile 스크립트에서 DOT 정보를 가져와서 적용한다고 가정합니다.
+        //     // FireProjectile fireProj = other.GetComponent<FireProjectile>();
+        //     // ApplyFireDOT(fireProj.initialDamage, fireProj.dotDamage, fireProj.dotDuration);
+        //     // Destroy(other.gameObject);
+        // }
     }
 
 
     // === 리스폰 함수 ===
     void Respawn()
     {
+        // 💡 리스폰 시 진행 중이던 DOT 코루틴 중지
+        if (fireDotCoroutine != null)
+        {
+            StopCoroutine(fireDotCoroutine);
+            fireDotCoroutine = null;
+        }
+
         // 1. 캐릭터 컨트롤러 비활성화 및 위치 재설정
         controller.enabled = false;
         transform.position = startPosition;
@@ -163,5 +183,21 @@ public class PlayerController : MonoBehaviour
     {
         // 사망 시 리스폰 호출
         Respawn();
+    }
+
+    public void StartDamageOverTime(int damage, float duration, float interval)
+    {
+        StartCoroutine(DamageOverTimeCoroutine(damage, duration, interval));
+    }
+
+    private IEnumerator DamageOverTimeCoroutine(int damage, float duration, float interval)
+    {
+        float endTime = Time.time + duration;
+        while (Time.time < endTime)
+        {
+            // TakeDamage는 이미 구현되어 있다고 가정
+            TakeDamage(damage);
+            yield return new WaitForSeconds(interval);
+        }
     }
 }
