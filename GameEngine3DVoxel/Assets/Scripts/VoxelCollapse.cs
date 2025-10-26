@@ -27,7 +27,7 @@ public class VoxelCollapse : MonoBehaviour
         // 찾았는지 로그 출력
         if (tileRenderer != null)
         {
-            Debug.Log($"Awake: Renderer 찾기 성공! 오브젝트: {gameObject.name}", this.gameObject);
+            //Debug.Log($"Awake: Renderer 찾기 성공! 오브젝트: {gameObject.name}", this.gameObject);
             // Material도 있는지 확인
             if (tileRenderer.material == null)
             {

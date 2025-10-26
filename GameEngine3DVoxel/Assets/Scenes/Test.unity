@@ -8872,8 +8872,9 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 15cf569a6ccf8a34eadffc443839aab6, type: 2}
+  m_sharedMaterial: {fileID: 7221285190061924521, guid: 15cf569a6ccf8a34eadffc443839aab6,
+    type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -9044,8 +9045,8 @@ MonoBehaviour:
   swordReadySprite: {fileID: 214115890, guid: 0b18a45e033be3e419d0a96ac0c095a7, type: 3}
   swordCooldownSprite: {fileID: 373235556, guid: 00fc564f22ce50646a1808db7573b32b,
     type: 3}
-  inventoryGunIcon: {fileID: 0}
-  inventorySwordIcon: {fileID: 0}
+  inventoryGunIcon: {fileID: 1063503278}
+  inventorySwordIcon: {fileID: 2091835190}
   meleeCooldown: 1
   meleeRange: 2
   swordEffectPrefab: {fileID: 5503505460791601945, guid: 74c549d1b06b6b140a1fd9536eea637f,
@@ -13155,8 +13156,9 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 15cf569a6ccf8a34eadffc443839aab6, type: 2}
+  m_sharedMaterial: {fileID: 7221285190061924521, guid: 15cf569a6ccf8a34eadffc443839aab6,
+    type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -13616,8 +13618,8 @@ MonoBehaviour:
   levelDisplay: {fileID: 606359090}
   hpStatDisplay: {fileID: 778713985}
   attackStatDisplay: {fileID: 1956167634}
-  gunDamageDisplay: {fileID: 0}
-  swordDamageDisplay: {fileID: 0}
+  gunDamageDisplay: {fileID: 289025592}
+  swordDamageDisplay: {fileID: 1010841301}
 --- !u!4 &2123523688
 Transform:
   m_ObjectHideFlags: 0

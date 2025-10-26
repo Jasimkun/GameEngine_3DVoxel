@@ -82,6 +82,16 @@ public class PlayerShooting : MonoBehaviour
         // 시작 시 무기 UI 및 모델을 총 모드로 초기화합니다.
         UpdateWeaponUI();
         UpdateWeaponModel();
+
+        // 📢 시작 시 인벤토리 아이콘들이 활성화되어 있도록 합니다.
+        EnsureInventoryIconsActive();
+    }
+
+    // 📢 시작 시 인벤토리 아이콘 활성화 함수
+    void EnsureInventoryIconsActive()
+    {
+        if (inventoryGunIcon != null) inventoryGunIcon.SetActive(true);
+        if (inventorySwordIcon != null) inventorySwordIcon.SetActive(true);
     }
 
     // 로컬 회전 오프셋 적용 함수
@@ -147,28 +157,33 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    // 📢 인벤토리가 열릴 때 호출될 함수 (새로 추가!)
+    // 📢 인벤토리가 열릴 때 호출될 함수 (수정됨!)
     public void UpdateInventoryWeaponIcons()
     {
-        // 널 체크
+        // 📢 아이콘 연결 확인만 하고, 켜고 끄는 로직은 제거!
         if (inventoryGunIcon == null || inventorySwordIcon == null)
         {
-            Debug.Log("인벤토리 무기 아이콘이 연결되지 않았습니다.");
+            Debug.LogWarning("인벤토리 무기 아이콘 중 일부 또는 전부가 연결되지 않았습니다.");
             return;
         }
 
+        // 📢 아이콘들이 항상 켜져 있도록 보장합니다.
+        inventoryGunIcon.SetActive(true);
+        inventorySwordIcon.SetActive(true);
+
+        // 📢 아래 켜고 끄는 로직 제거됨:
+        /*
         if (isMeleeMode)
         {
-            // 칼 모드일 때: 칼 아이콘 켜기, 총 아이콘 끄기
             inventorySwordIcon.SetActive(true);
             inventoryGunIcon.SetActive(false);
         }
         else
         {
-            // 총 모드일 때: 총 아이콘 켜기, 칼 아이콘 끄기
             inventoryGunIcon.SetActive(true);
             inventorySwordIcon.SetActive(false);
         }
+        */
     }
 
     // ===========================================
@@ -195,7 +210,7 @@ public class PlayerShooting : MonoBehaviour
 
 
     // ===========================================
-    // 근접 공격 (Melee/Sword) 로직 - 📢 IDamageable로 수정됨!
+    // 근접 공격 (Melee/Sword) 로직
     // ===========================================
     void MeleeAttack()
     {
@@ -213,30 +228,28 @@ public class PlayerShooting : MonoBehaviour
 
         Vector3 origin = firePoint.position;
 
-        //Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
+        // Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
 
         Collider[] hitColliders = Physics.OverlapSphere(origin, meleeRange);
 
-        //Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
+        // Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
 
         foreach (var hitCollider in hitColliders)
         {
-            //Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
+            // Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
 
-            if (hitCollider.CompareTag("Enemy"))
+            // 🔥🔥 핵심 수정! 🔥🔥
+            // "Enemy" 태그 확인 제거! -> 모든 콜라이더에서 IDamageable을 찾습니다.
+            IDamageable damageable = hitCollider.GetComponent<IDamageable>();
+
+            if (damageable != null)
             {
-                IDamageable damageable = hitCollider.GetComponent<IDamageable>();
-
-                if (damageable != null)
-                {
-                    damageable.TakeDamage(playerController.attackDamage);
-                    //Debug.Log("✅ 칼 공격 성공: " + hitCollider.name + "에게 " + playerController.attackDamage + " 피해를 입혔습니다.");
-                }
-                else
-                {
-                    //Debug.LogWarning("❌ Enemy 태그는 있지만 IDamageable 스크립트가 없습니다: " + hitCollider.name);
-                }
+                // IDamageable이 있다면, 그게 적이든 구름 핵이든 TakeDamage 호출!
+                // CloudCore의 TakeDamage 함수 안에서 isAttackable을 체크할 것이므로 여기서 따로 확인할 필요 없음.
+                damageable.TakeDamage(playerController.attackDamage);
+                // Debug.Log($"✅ 칼 공격 성공: {hitCollider.name}에게 {playerController.attackDamage} 피해를 입혔습니다.");
             }
+            // else: IDamageable이 없는 오브젝트는 무시 (벽, 바닥 등)
         }
     }
 
@@ -264,12 +277,12 @@ public class PlayerShooting : MonoBehaviour
         if (projectileComponent != null)
         {
             projectileComponent.SetDamage(playerController.attackDamage);
-            //Debug.Log("총 공격: 투사체에 " + playerController.attackDamage + " 데미지를 설정했습니다.");
+            // Debug.Log("총 공격: 투사체에 " + playerController.attackDamage + " 데미지를 설정했습니다."); // 로그 비활성화
         }
     }
 
     // ===========================================
-    // 📢 근접 공격 범위 시각화 (유니티 에디터 전용)
+    // 근접 공격 범위 시각화 (유니티 에디터 전용)
     // ===========================================
 #if UNITY_EDITOR
     private void OnDrawGizmos()
