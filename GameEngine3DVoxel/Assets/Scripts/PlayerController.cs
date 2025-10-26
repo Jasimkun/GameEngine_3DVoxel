@@ -204,7 +204,7 @@ public class PlayerController : MonoBehaviour
     {
         currentHP -= damage;
 
-        // 📢 HP 슬라이더 표시 문제 해결: 슬라이더 value에 실제 currentHP 값을 대입
+        // HP 슬라이더 표시 문제 해결 (value에 실제 currentHP 값을 대입)
         hpSlider.value = currentHP;
 
         if (currentHP <= 0)
@@ -217,6 +217,37 @@ public class PlayerController : MonoBehaviour
     {
         Respawn();
     }
+
+    // ===========================================
+    // === 신규 추가 함수 (SafeZone용) ===
+    // ===========================================
+
+    // 📢 (새로 추가) 체력 회복 함수
+    public void HealToAmount(int targetHP)
+    {
+        // 현재 HP가 목표치(50% HP)보다 높으면 회복하지 않습니다.
+        if (currentHP >= targetHP)
+        {
+            Debug.Log("이미 HP가 회복 목표치보다 높습니다.");
+            return;
+        }
+
+        // 최대 HP를 넘지 않도록 합니다.
+        currentHP = Mathf.Min(targetHP, maxHP);
+
+        // 슬라이더 업데이트 (maxValue가 maxHP로 설정되어 있으므로, value에 currentHP를 바로 넣습니다)
+        hpSlider.value = currentHP;
+
+        Debug.Log("플레이어가 " + currentHP + "까지 회복되었습니다.");
+    }
+
+    // 📢 (새로 추가) 스폰 포인트 갱신 함수
+    public void UpdateSpawnPoint(Vector3 newSpawnPosition)
+    {
+        startPosition = newSpawnPosition;
+        Debug.Log("새로운 스폰 포인트가 설정되었습니다: " + newSpawnPosition);
+    }
+
 
     // === DOT 로직 ===
     public void StartDamageOverTime(int damage, float duration, float interval)
