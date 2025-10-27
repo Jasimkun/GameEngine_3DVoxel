@@ -50,11 +50,11 @@ public class TNT : MonoBehaviour, IDamageable
         }
 
         // Renderer 초기화 (필요시 색상 저장)
-        enemyRenderer = GetComponent<Renderer>();
+        enemyRenderer = GetComponentInChildren<Renderer>();
         if (enemyRenderer != null)
         {
             originalColor = enemyRenderer.material.color; // 필요하다면 유지
-        }
+        }
 
         // Rigidbody 설정
         enemyRigidbody = GetComponent<Rigidbody>();

@@ -58,7 +58,7 @@ public class Enemy : MonoBehaviour, IDamageable
             hpSlider.value = (float)currentHP / maxHP;
         }
 
-        enemyRenderer = GetComponent<Renderer>();
+        enemyRenderer = GetComponentInChildren<Renderer>();
 
         // 💡 Rigidbody 설정: Kinematic으로 고정 (평소 이동)
         enemyRigidbody = GetComponent<Rigidbody>();
@@ -156,22 +156,30 @@ public class Enemy : MonoBehaviour, IDamageable
 
     private IEnumerator BlinkEffect()
     {
-        // enemyRenderer는 Start()에서 이미 찾았으므로 null 체크만 합니다.
         if (enemyRenderer == null) yield break;
 
-        float blinkDuration = 0.1f; // 빨간색으로 유지되는 시간
+        float blinkDuration = 0.1f;
 
-        // 빨간색으로 변경
+        // 1. 피격 시 무조건 빨간색
         enemyRenderer.material.color = Color.red;
 
-        // 짧은 대기
-        yield return new WaitForSeconds(blinkDuration);
+        // 2. 0.1초 대기
+        yield return new WaitForSeconds(blinkDuration);
 
-        // 원래 색상(originalColor)으로 복구
-        enemyRenderer.material.color = originalColor;
+        // 🔻 4. [수정] 현재 상태에 맞는 색으로 복구
+        if (state == EnemyState.Suicide)
+        {
+            // 자폭 중이었다면 경고색으로 복구
+            enemyRenderer.material.color = warningColor;
+        }
+        else
+        {
+            // 다른 상태면 원래 색상으로 복구
+            enemyRenderer.material.color = originalColor;
+        }
 
-        // 코루틴 참조 제거
-        blinkCoroutine = null;
+        // 코루틴 참조 제거
+        blinkCoroutine = null;
     }
 
     void Die()
@@ -221,13 +229,7 @@ public class Enemy : MonoBehaviour, IDamageable
     // 💡 AttackPlayer 함수 수정: 투사체 발사 로직 제거 (근접 대기만 수행)
     void AttackPlayer()
     {
-        // 💡 투사체 발사 대신, 쿨타임마다 플레이어를 바라보며 대기만 합니다.
-
-        // if (Time.time >= lastAttackTime + attackCooldown)
-        // {
-        //     lastAttackTime = Time.time;
-        //     // ShootProjectile(); // 투사체 발사 로직 제거
-        // }
+        
 
         SnapToGround();
 
@@ -238,12 +240,7 @@ public class Enemy : MonoBehaviour, IDamageable
         transform.LookAt(lookTarget);
     }
 
-    // 💡 ShootProjectile 함수 제거
-    /*
-    void ShootProjectile() {
-        // ... (내용 제거)
-    }
-    */
+    
 
     // 💡 RunAwayFromPlayer 함수 수정: 이동 전 지면 검사 추가
     void RunAwayFromPlayer()
@@ -313,25 +310,27 @@ public class Enemy : MonoBehaviour, IDamageable
 
     IEnumerator SuicideCountdown()
     {
-        // 💡 자폭 전 경고 효과 로직 (유지)
-        if (enemyRenderer != null)
+        // 💡 자폭 전 경고 (깜빡이는 중이 아닐 때만)
+        // 🔻 3. [수정] blinkCoroutine == null 조건 추가
+        if (enemyRenderer != null && blinkCoroutine == null)
         {
             enemyRenderer.material.color = warningColor;
         }
 
-        // 1초 대기 (자폭 딜레이)
-        yield return new WaitForSeconds(suicideDelay);
+        // 1초 대기 (자폭 딜레이)
+        yield return new WaitForSeconds(suicideDelay);
 
-        // 자폭 실행 전에 원래 색상 복구
-        if (enemyRenderer != null)
+        // 자폭 실행 전에 원래 색상 복구 (깜빡이는 중이 아닐 때만)
+        // 🔻 3. [수정] blinkCoroutine == null 조건 추가
+        if (enemyRenderer != null && blinkCoroutine == null)
         {
             enemyRenderer.material.color = originalColor;
         }
 
         suicideCoroutine = null;
 
-        // 자폭 실행
-        ExplodeAndDestroyTiles();
+        // 자폭 실행
+        ExplodeAndDestroyTiles();
     }
 
     void ExplodeAndDestroyTiles()
