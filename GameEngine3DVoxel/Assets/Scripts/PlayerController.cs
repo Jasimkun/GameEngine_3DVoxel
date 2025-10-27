@@ -239,12 +239,21 @@ public class PlayerController : MonoBehaviour
 
     void Die()
     {
-        Debug.Log("플레이어가 사망했습니다!");
+        //Debug.Log("플레이어가 사망했습니다!");
+
+        // 📢 HP 슬라이더 값을 0으로 설정!
+        if (hpSlider != null)
+        {
+            hpSlider.value = 0;
+        }
+        // currentHP는 이미 0 이하일 것이므로 따로 설정할 필요는 없습니다.
+
+        // 리스폰 UI 활성화 및 게임 정지
         if (respawnPanel != null)
         {
             respawnPanel.SetActive(true);
-            Time.timeScale = 0f;
-            Cursor.lockState = CursorLockMode.None;
+            Time.timeScale = 0f; // 게임 시간 정지
+            Cursor.lockState = CursorLockMode.None; // 커서 보이기
             Cursor.visible = true;
         }
         else

@@ -118,8 +118,9 @@ public class PlayerShooting : MonoBehaviour
             UpdateWeaponModel();
         }
 
-        // 마우스 좌클릭 (0) - 현재 모드에 따라 공격 실행 (총 또는 칼)
-        if (Input.GetMouseButtonDown(0))
+        // 📢 마우스 좌클릭 (0) - 공격 실행 조건 추가!
+        // 게임 시간이 멈춰있지 않을 때만 공격 가능
+        if (Time.timeScale > 0f && Input.GetMouseButtonDown(0))
         {
             Attack();
         }
