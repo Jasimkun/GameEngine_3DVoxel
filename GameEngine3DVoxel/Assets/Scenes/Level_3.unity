@@ -17620,7 +17620,7 @@ MonoBehaviour:
     type: 3}
   spawnInterval: 1
   spawnRange: 1
-  maxEnemiesToSpawn: 5
+  maxEnemiesToSpawn: 2
   spawnCheckDistance: 10
   spawnHeightOffset: 0.5
 --- !u!4 &987664291
