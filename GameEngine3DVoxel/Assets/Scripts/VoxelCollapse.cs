@@ -3,76 +3,46 @@ using System.Collections;
 
 public class VoxelCollapse : MonoBehaviour
 {
-    // 🔻 [수정] 기본 붕괴 지연 시간 (Inspector에서 설정)
-    public float baseCollapseDelay = 5.0f;
-    public float fadeOutDuration = 1.0f; // 페이드 아웃 시간 (현재 로직에선 fallDuration과 같음)
-
-    [Header("Fall Settings")]
+    // [삭제] public float baseCollapseDelay = 5.0f; // GameManager로 이동됨
+    public float fadeOutDuration = 1.0f;
+    [Header("Fall Settings")]
     public float fallDistance = 1.0f;
     public float fallDuration = 0.5f;
+    // [삭제] private float calculatedCollapseDelay; // 사용 안 함
+    // [삭제] public float minCollapseDelay = 0.1f; // GameManager로 이동됨
 
-    // 🔻 [추가] 레벨에 따라 계산된 최종 붕괴 지연 시간
-    private float calculatedCollapseDelay;
-    // 🔻 [추가] 최소 붕괴 지연 시간 (음수 방지)
-    public float minCollapseDelay = 0.1f;
-
-    // === 상태 추적 변수 ===
-    private Coroutine collapseCoroutine;
+    private Coroutine collapseCoroutine;
     public bool IsCollapseStarted => collapseCoroutine != null;
+    private Renderer tileRenderer;
+    // --- (Rigidbody 관련 주석은 그대로 둠) ---
 
-    // === 내부 컴포넌트 ===
-    private Renderer tileRenderer;
-    // Rigidbody 관련 코드는 주석 처리 유지 (현재 사용 안 함)
-    // private Rigidbody tileRigidbody;
-
-    void Awake()
+    void Awake()
     {
         tileRenderer = GetComponent<Renderer>();
         if (tileRenderer == null || tileRenderer.material == null)
         {
             Debug.LogError($"Awake: Renderer 또는 Material을 찾을 수 없습니다! 오브젝트: {gameObject.name}", this.gameObject);
         }
+        // 🔻 [삭제] Awake에서 붕괴 시간 계산 로직 제거 🔻
+    }
 
-        // 🔻 [수정] GameManager에서 현재 레벨을 가져와 붕괴 지연 시간 계산
-        int level = 1; // 기본 레벨
-        float delayReductionPerLevel = 0.5f; // 레벨당 감소할 시간
-
-        if (GameManager.Instance != null)
-        {
-            level = GameManager.Instance.currentLevel;
-            // 레벨에 맞춰 붕괴 지연 시간 계산 (레벨당 0.5초 감소)
-            calculatedCollapseDelay = baseCollapseDelay - (level - 1) * delayReductionPerLevel;
-
-            // 최소 지연 시간보다 작아지지 않도록 제한
-            if (calculatedCollapseDelay < minCollapseDelay)
-            {
-                calculatedCollapseDelay = minCollapseDelay;
-            }
-            // Debug.Log($"VoxelCollapse ({gameObject.name}): Level {level}, Calculated Delay: {calculatedCollapseDelay}");
-        }
-        else
-        {
-            // GameManager가 없을 경우 기본 지연 시간 사용
-            calculatedCollapseDelay = baseCollapseDelay;
-            Debug.LogWarning($"VoxelCollapse ({gameObject.name}): GameManager Instance not found. Using base collapse delay.");
-        }
-    }
-
-    public void StartDelayedCollapse()
+    // 플레이어가 밟았을 때 호출 (기본 딜레이 사용)
+    public void StartDelayedCollapse()
     {
         if (collapseCoroutine == null)
         {
-            // 코루틴 시작 전 Renderer/Material 최종 확인
-            if (tileRenderer == null || tileRenderer.material == null)
+            if (tileRenderer == null || tileRenderer.material == null)
             {
                 Debug.LogError("StartDelayedCollapse: Renderer 또는 Material이 null입니다!", this.gameObject);
                 return;
             }
-            collapseCoroutine = StartCoroutine(StartCollapseWithDelay());
+            // 🔻 [수정] 코루틴 호출 시 매개변수 없이 호출 (GameManager 값 사용)
+            collapseCoroutine = StartCoroutine(StartCollapseWithDelay());
         }
     }
 
-    public void CancelCollapse()
+    // 붕괴 취소
+    public void CancelCollapse()
     {
         if (collapseCoroutine != null)
         {
@@ -81,67 +51,82 @@ public class VoxelCollapse : MonoBehaviour
         }
     }
 
+    // Q 스킬 등 외부에서 딜레이 강제 설정 및 즉시 시작
     public void SetTemporaryDelay(float newDelay)
     {
         // 1. 이미 붕괴 중이면 취소
         CancelCollapse();
 
-        // 2. 계산된 지연 시간 대신 새로운 지연 시간을 임시로 사용
-        calculatedCollapseDelay = newDelay;
-
-        // 3. (선택적) 시각적 피드백
+        // 2. 시각적 피드백 (선택적)
         // if(tileRenderer != null) tileRenderer.material.color = Color.blue;
 
-        // 참고: 이 함수는 붕괴를 '시작'하지는 않습니다.
-        // StartDelayedCollapse()가 호출되어야 붕괴가 시작됩니다.
-        // 만약 이 함수 호출 즉시 붕괴를 시작하고 싶다면 아래 주석 해제
-        // StartDelayedCollapse();
+        // 3. 🔻 [수정] 새로운 딜레이 값으로 코루틴 즉시 시작 🔻
+        if (tileRenderer != null && tileRenderer.material != null) // 시작 전 확인
+        {
+            collapseCoroutine = StartCoroutine(StartCollapseWithDelay(newDelay)); // newDelay 값을 매개변수로 전달
+        }
+        else
+        {
+            Debug.LogError("SetTemporaryDelay: Renderer 또는 Material이 null이라 붕괴 시작 불가!", this.gameObject);
+        }
     }
 
-    IEnumerator StartCollapseWithDelay()
+    // 🔻 [수정] 코루틴이 float 매개변수를 받도록 변경 (기본값 -1) 🔻
+    IEnumerator StartCollapseWithDelay(float delayToUse = -1f)
     {
-        // 🔻 [수정] collapseDelay 대신 calculatedCollapseDelay 사용
-        yield return new WaitForSeconds(calculatedCollapseDelay);
+        float waitTime;
 
-        if (tileRenderer != null && tileRenderer.material != null)
+        // 매개변수로 유효한 값(0 이상)이 들어왔는지 확인
+        if (delayToUse >= 0)
+        {
+            // SetTemporaryDelay에서 전달한 값 사용
+            waitTime = delayToUse;
+            // Debug.Log($"Using temporary delay: {waitTime}s for {gameObject.name}");
+        }
+        else // 매개변수가 없거나 음수면 GameManager 값 사용
+        {
+            if (GameManager.Instance != null)
+            {
+                waitTime = GameManager.Instance.currentCollapseDelay;
+            }
+            else
+            {
+                // GameManager 없을 때 사용할 기본값 (GameManager의 base 값과 맞추는 것이 좋음)
+                waitTime = 5.0f;
+                Debug.LogWarning($"VoxelCollapse ({gameObject.name}): GameManager not found, using default delay {waitTime}s.");
+            }
+            // Debug.Log($"Using GameManager delay: {waitTime}s for {gameObject.name}");
+        }
+
+        yield return new WaitForSeconds(waitTime); // 계산된/설정된 시간만큼 기다림
+
+        // --- (이하 코루틴 내용은 동일) ---
+        if (tileRenderer != null && tileRenderer.material != null)
         {
             StartCoroutine(ControlledFallAndFade());
         }
         else
         {
-            Debug.LogError("StartCollapseWithDelay: ControlledFallAndFade 시작 불가 - Renderer 또는 Material이 null입니다!", this.gameObject);
+            Debug.LogError("StartCollapseWithDelay: ControlledFallAndFade 시작 불가 - Renderer 또는 Material이 null!", this.gameObject);
         }
-        collapseCoroutine = null; // 코루틴이 끝났음을 표시 (Start 호출 후 바로 실행됨)
+        collapseCoroutine = null; // 코루틴 완료
     }
 
+    // --- (ControlledFallAndFade 코루틴은 동일) ---
     IEnumerator ControlledFallAndFade()
     {
         if (tileRenderer == null || tileRenderer.material == null)
         {
-            Debug.LogError("ControlledFallAndFade: 코루틴 시작 시 Renderer 또는 Material이 null입니다! 종료.", this.gameObject);
-            // 부모 오브젝트 파괴 시도 (타일이 부모 아래 자식으로 구성된 경우)
+            Debug.LogError($"ControlledFallAndFade: Renderer or Material null on {gameObject.name}. Destroying.", this.gameObject);
             Destroy(gameObject.transform.parent != null ? gameObject.transform.parent.gameObject : gameObject);
             yield break;
         }
 
-        float startTime = Time.time;
-        // 부모 Transform 가져오기 (없으면 자신) - 타일 구조에 맞게 조정 필요
         Transform rootTransform = gameObject.transform.parent ?? gameObject.transform;
-        Vector3 startPos = rootTransform.position; // 부모의 현재 위치
-        Vector3 endPos = startPos + Vector3.down * fallDistance; // 목표 위치
-        Color startColor = Color.white; // 기본값
-
-        // Material의 색상 속성 이름 확인 및 가져오기 (URP/HDRP 호환성)
-        string colorPropertyName = "_BaseColor"; // URP/HDRP Lit 기본
-        if (!tileRenderer.material.HasProperty(colorPropertyName))
-        {
-            colorPropertyName = "_Color"; // Built-in Standard 또는 다른 셰이더
-            if (!tileRenderer.material.HasProperty(colorPropertyName))
-            {
-                Debug.LogError("Material에 '_BaseColor' 또는 '_Color' 속성이 없습니다! Fade 효과 실패.", gameObject);
-                colorPropertyName = null; // 색상 변경 불가 표시
-            }
-        }
+        Vector3 startPos = rootTransform.position;
+        Vector3 endPos = startPos + Vector3.down * fallDistance;
+        Color startColor = Color.white;
+        string colorPropertyName = GetColorPropertyName();
 
         if (colorPropertyName != null)
         {
@@ -149,30 +134,33 @@ public class VoxelCollapse : MonoBehaviour
         }
 
         float timer = 0f;
-
-        // 지정된 시간(fallDuration) 동안 아래로 이동하며 투명해짐
-        while (timer < fallDuration)
+        while (timer < fallDuration)
         {
             timer += Time.deltaTime;
-            // 진행도 계산 (0.0 ~ 1.0)
             float t = Mathf.Clamp01(timer / fallDuration);
-
-            // 부모 오브젝트의 위치를 부드럽게 변경 (Lerp 사용)
             rootTransform.position = Vector3.Lerp(startPos, endPos, t);
 
-            // 색상 변경이 가능한 경우에만 알파값 조절
             if (colorPropertyName != null)
             {
-                float alpha = Mathf.Lerp(1f, 0f, t); // 알파값 계산 (1 -> 0)
+                float alpha = Mathf.Lerp(1f, 0f, t);
                 Color newColor = startColor;
                 newColor.a = alpha;
-                tileRenderer.material.SetColor(colorPropertyName, newColor); // 색상 적용
+                tileRenderer.material.SetColor(colorPropertyName, newColor);
             }
-
-            yield return null; // 다음 프레임까지 대기
-        }
-
-        // 루프 종료 후 부모 오브젝트 파괴
+            yield return null;
+        }
         Destroy(rootTransform.gameObject);
+    }
+
+    // Material의 색상 속성 이름 찾는 Helper 함수
+    string GetColorPropertyName()
+    {
+        if (tileRenderer == null || tileRenderer.material == null) return null;
+
+        if (tileRenderer.material.HasProperty("_BaseColor")) return "_BaseColor";
+        if (tileRenderer.material.HasProperty("_Color")) return "_Color";
+
+        Debug.LogError("Material에 '_BaseColor' 또는 '_Color' 속성이 없습니다! Fade 효과 실패.", gameObject);
+        return null;
     }
 }

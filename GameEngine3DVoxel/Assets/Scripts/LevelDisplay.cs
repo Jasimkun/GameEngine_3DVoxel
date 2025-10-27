@@ -1,68 +1,85 @@
-using UnityEngine;
-using TMPro; // TextMeshPro »ç¿ë
+ï»¿using UnityEngine;
+using TMPro; // TextMeshPro ì‚¬ìš©
 using System.Collections;
 
 public class LevelDisplay : MonoBehaviour
 {
-    public TMP_Text levelText; // Inspector¿¡¼­ ¿¬°áÇÒ TextMeshPro ¿ÀºêÁ§Æ®
-    public float displayDuration = 2f; // ÅØ½ºÆ®°¡ º¸ÀÌ´Â ½Ã°£ (3ÃÊ)
-    public float fadeDuration = 1f; // ÅØ½ºÆ®°¡ »ç¶óÁö´Â ½Ã°£ (1ÃÊ)
+    public TMP_Text levelText; // Inspectorì—ì„œ "LevelDisplayText" ì—°ê²°
+    // ğŸ”» 1. [ì¶”ê°€] ë¶•ê´´ ì‹œê°„ í…ìŠ¤íŠ¸ ë³€ìˆ˜
+    public TMP_Text collapseDelayText; // Inspectorì—ì„œ "CollapseDelayText" ì—°ê²°
 
-    private Coroutine fadeCoroutine; // ½ÇÇà ÁßÀÎ ÄÚ·çÆ¾ ÀúÀå¿ë
+    public float displayDuration = 3f; // ë³´ì´ëŠ” ì‹œê°„
+    public float fadeDuration = 1f;    // ì‚¬ë¼ì§€ëŠ” ì‹œê°„
+    private Coroutine fadeCoroutine;
 
     void Awake()
     {
-        // ½ÃÀÛÇÒ ¶§ ÅØ½ºÆ®°¡ ¾È º¸ÀÌµµ·Ï ¾ËÆÄ°ª 0À¸·Î ¼³Á¤
+        // ì‹œì‘ ì‹œ ë‘ í…ìŠ¤íŠ¸ ëª¨ë‘ íˆ¬ëª…í•˜ê²Œ
         if (levelText != null)
         {
             levelText.color = new Color(levelText.color.r, levelText.color.g, levelText.color.b, 0);
         }
-        else
+        else { Debug.LogError("LevelDisplay: Level Textê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤!"); }
+
+        // ğŸ”» 2. [ì¶”ê°€] ë¶•ê´´ ì‹œê°„ í…ìŠ¤íŠ¸ ì´ˆê¸°í™”
+        if (collapseDelayText != null)
         {
-            Debug.LogError("LevelDisplay: Level Text°¡ ¿¬°áµÇÁö ¾Ê¾Ò½À´Ï´Ù!");
+            collapseDelayText.color = new Color(collapseDelayText.color.r, collapseDelayText.color.g, collapseDelayText.color.b, 0);
         }
+        else { Debug.LogError("LevelDisplay: Collapse Delay Textê°€ ì—°ê²°ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤!"); }
     }
 
-    // GameManager°¡ È£ÃâÇÒ ÇÔ¼ö
+    // GameManagerê°€ í˜¸ì¶œí•  í•¨ìˆ˜
     public void ShowLevel(int levelNumber)
     {
-        if (levelText == null) return;
+        // ë‘ í…ìŠ¤íŠ¸ ì¤‘ í•˜ë‚˜ë¼ë„ ì—†ìœ¼ë©´ ì‹¤í–‰ ì¤‘ì§€
+        if (levelText == null || collapseDelayText == null) return;
+        if (fadeCoroutine != null) StopCoroutine(fadeCoroutine);
 
-        // ÀÌÀü¿¡ ½ÇÇà ÁßÀÎ ÆäÀÌµå ÄÚ·çÆ¾ÀÌ ÀÖ´Ù¸é ÁßÁö
-        if (fadeCoroutine != null)
-        {
-            StopCoroutine(fadeCoroutine);
-        }
+        // GameManagerì—ì„œ í˜„ì¬ ë¶•ê´´ ì§€ì—° ì‹œê°„ ê°€ì ¸ì˜¤ê¸°
+        float collapseDelay = (GameManager.Instance != null) ? GameManager.Instance.currentCollapseDelay : 5.0f;
 
-        // ÅØ½ºÆ® ¼³Á¤ ¹× Ç¥½Ã
-        levelText.text = "·¹º§ " + levelNumber;
-        levelText.color = new Color(levelText.color.r, levelText.color.g, levelText.color.b, 1); // ¾ËÆÄ°ª 1 (¿ÏÀü ºÒÅõ¸í)
+        // ğŸ”» 3. [ìˆ˜ì •] ê° í…ìŠ¤íŠ¸ ë‚´ìš© ê°œë³„ ì„¤ì •
+        levelText.text = $"Level {levelNumber}";
+        collapseDelayText.text = $"(íƒ€ì¼ ë¶•ê´´: {collapseDelay:F1}ì´ˆ)"; // ì†Œìˆ˜ì  í•œ ìë¦¬ê¹Œì§€
 
-        // ÆäÀÌµå ¾Æ¿ô ÄÚ·çÆ¾ ½ÃÀÛ
+        // ğŸ”» 3. [ìˆ˜ì •] ê° í…ìŠ¤íŠ¸ ì•ŒíŒŒê°’ 1ë¡œ ì„¤ì • (ë³´ì´ê²Œ)
+        levelText.color = new Color(levelText.color.r, levelText.color.g, levelText.color.b, 1);
+        collapseDelayText.color = new Color(collapseDelayText.color.r, collapseDelayText.color.g, collapseDelayText.color.b, 1);
+
         fadeCoroutine = StartCoroutine(FadeOutText());
     }
 
-    // ¼­¼­È÷ »ç¶óÁö°Ô ÇÏ´Â ÄÚ·çÆ¾
+    // ì„œì„œíˆ ì‚¬ë¼ì§€ê²Œ í•˜ëŠ” ì½”ë£¨í‹´
     private IEnumerator FadeOutText()
     {
-        // 1. ¼³Á¤µÈ ½Ã°£(3ÃÊ) µ¿¾È ±â´Ù¸²
+        // 1. ì„¤ì •ëœ ì‹œê°„(3ì´ˆ) ë™ì•ˆ ê¸°ë‹¤ë¦¼
         yield return new WaitForSeconds(displayDuration);
 
-        // 2. ¼³Á¤µÈ ½Ã°£(1ÃÊ) µ¿¾È ¼­¼­È÷ Åõ¸íÇÏ°Ô ¸¸µê
+        // 2. ì„¤ì •ëœ ì‹œê°„(1ì´ˆ) ë™ì•ˆ ë‘ í…ìŠ¤íŠ¸ ëª¨ë‘ ì„œì„œíˆ íˆ¬ëª…í•˜ê²Œ
         float timer = 0f;
-        Color startColor = levelText.color; // ÇöÀç »ö»ó (¾ËÆÄ 1)
-        Color endColor = new Color(startColor.r, startColor.g, startColor.b, 0); // ¸ñÇ¥ »ö»ó (¾ËÆÄ 0)
+        // ì‹œì‘ ìƒ‰ìƒ ì €ì¥ (ì•ŒíŒŒ=1)
+        Color startColorLevel = levelText.color;
+        Color startColorDelay = collapseDelayText.color;
+        // ëª©í‘œ ìƒ‰ìƒ ì €ì¥ (ì•ŒíŒŒ=0)
+        Color endColorLevel = new Color(startColorLevel.r, startColorLevel.g, startColorLevel.b, 0);
+        Color endColorDelay = new Color(startColorDelay.r, startColorDelay.g, startColorDelay.b, 0);
 
         while (timer < fadeDuration)
         {
             timer += Time.deltaTime;
-            // Lerp(½ÃÀÛ, ³¡, ÁøÇàµµ)¸¦ »ç¿ëÇÏ¿© ºÎµå·´°Ô »ö»ó º¯°æ
-            levelText.color = Color.Lerp(startColor, endColor, timer / fadeDuration);
-            yield return null; // ´ÙÀ½ ÇÁ·¹ÀÓ±îÁö ´ë±â
+            float progress = timer / fadeDuration; // ì§„í–‰ë„ (0 ~ 1)
+
+            // ğŸ”» 4. [ìˆ˜ì •] ë‘ í…ìŠ¤íŠ¸ ìƒ‰ìƒ ë™ì‹œ ë³€ê²½
+            levelText.color = Color.Lerp(startColorLevel, endColorLevel, progress);
+            collapseDelayText.color = Color.Lerp(startColorDelay, endColorDelay, progress);
+
+            yield return null; // ë‹¤ìŒ í”„ë ˆì„ê¹Œì§€ ëŒ€ê¸°
         }
 
-        // È®½ÇÇÏ°Ô ¾ËÆÄ°ª 0À¸·Î ¼³Á¤
-        levelText.color = endColor;
-        fadeCoroutine = null; // ÄÚ·çÆ¾ ¿Ï·á
+        // í™•ì‹¤í•˜ê²Œ ì•ŒíŒŒê°’ 0ìœ¼ë¡œ ì„¤ì •
+        levelText.color = endColorLevel;
+        collapseDelayText.color = endColorDelay;
+        fadeCoroutine = null; // ì½”ë£¨í‹´ ì™„ë£Œ
     }
 }

@@ -11,6 +11,12 @@ public class GameManager : MonoBehaviour
     public int hpBonusPerLevel = 5;
     public int damageBonusPerLevel = 1;
 
+    [Header("Tile Collapse Settings")]
+    public float baseCollapseDelay = 5.0f;     // 기본 붕괴 지연 시간 (VoxelCollapse의 기본값과 일치시키세요)
+    public float delayReductionPerLevel = 0.5f; // 레벨당 감소할 시간
+    public float minCollapseDelay = 0.1f;      // 최소 붕괴 지연 시간
+    public float currentCollapseDelay { get; private set; } // 현재 레벨의 계산된 붕괴 지연 시간 (읽기 전용)
+
     void Awake()
     {
         // 3. 싱글톤 설정 (씬이 바뀌어도 파괴되지 않음)
@@ -18,6 +24,7 @@ public class GameManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject); // 이 오브젝트를 파괴하지 않음
+            CalculateCurrentCollapseDelay();
         }
         else if (Instance != this)
         {
@@ -30,6 +37,7 @@ public class GameManager : MonoBehaviour
     public void LoadNextLevel(string sceneName)
     {
         currentLevel++; // 레벨을 1 올립니다.
+        CalculateCurrentCollapseDelay();
         SceneManager.LoadScene(sceneName); // 다음 씬을 로드합니다.
     }
 
@@ -65,6 +73,14 @@ public class GameManager : MonoBehaviour
             // {
             Debug.LogWarning("로드된 씬에 LevelDisplay 오브젝트가 없습니다!");
             // }
+        }
+    }
+    void CalculateCurrentCollapseDelay()
+    {
+        currentCollapseDelay = baseCollapseDelay - (currentLevel - 1) * delayReductionPerLevel;
+        if (currentCollapseDelay < minCollapseDelay)
+        {
+            currentCollapseDelay = minCollapseDelay;
         }
     }
 }
