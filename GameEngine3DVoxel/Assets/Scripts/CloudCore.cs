@@ -8,6 +8,8 @@ public class CloudCore : MonoBehaviour, IDamageable
     public int maxHP = 10;
     private int currentHP;
 
+    public int experienceValue = 15;
+
     private bool isAttackable = false; // 공격 가능 상태
 
     // 🔻 2. [추가] 생성할 포탈 프리팹 (Inspector에서 연결)
@@ -91,6 +93,16 @@ public class CloudCore : MonoBehaviour, IDamageable
     void Die()
     {
         Debug.Log("구름 핵을 파괴했어!");
+
+        if (EnemyManager.Instance != null)
+        {
+            EnemyManager.Instance.EnemyDefeated(experienceValue);
+            Debug.Log($"플레이어가 구름 핵 경험치 {experienceValue}를 획득했습니다!");
+        }
+        else
+        {
+            Debug.LogError("EnemyManager Instance not found! Cannot award EXP for Cloud Core.");
+        }
 
         // 🔻 7. [추가] 포탈 생성 로직
         if (portalPrefab != null)

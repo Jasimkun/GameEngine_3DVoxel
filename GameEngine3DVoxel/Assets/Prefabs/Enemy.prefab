@@ -516,10 +516,13 @@ MonoBehaviour:
   groundOffset: 0.1
   suicideDelay: 1
   warningColor: {r: 1, g: 1, b: 1, a: 1}
-  explosionDamage: 10
+  baseExplosionDamage: 10
+  blinkInterval: 0.2
+  maxSuicideScale: 2
   attackCooldown: 1.5
-  maxHP: 10
+  baseMaxHP: 10
   currentHP: 0
+  experienceValue: 10
   hpSlider: {fileID: 4190739656619273114}
 --- !u!1001 &7504137357467319207
 PrefabInstance:

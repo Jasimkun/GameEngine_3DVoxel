@@ -326,14 +326,15 @@ MonoBehaviour:
   chargeRange: 2
   chargeSpeed: 10
   pushForce: 5
-  contactDamage: 5
+  baseContactDamage: 5
   pushCooldown: 3
   waitDuration: 3
   groundCheckDistance: 1
   groundOffset: 0.1
-  hpSlider: {fileID: 8745181766014401437}
-  maxHP: 10
+  baseMaxHP: 10
   currentHP: 0
+  experienceValue: 10
+  hpSlider: {fileID: 8745181766014401437}
 --- !u!1 &5790798484834263363
 GameObject:
   m_ObjectHideFlags: 0

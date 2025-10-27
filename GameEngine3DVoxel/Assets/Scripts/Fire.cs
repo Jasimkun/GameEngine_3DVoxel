@@ -95,7 +95,7 @@ public class Fire : MonoBehaviour, IDamageable
                 break;
             case EnemyState.RunAway:
                 RunAwayFromPlayer();
-                float runawayDistance = 15f;
+                float runawayDistance = 7f;
                 if (Vector3.Distance(player.position, transform.position) > runawayDistance) state = EnemyState.Idle;
                 break;
         }

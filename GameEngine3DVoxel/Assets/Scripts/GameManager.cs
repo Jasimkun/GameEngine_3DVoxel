@@ -1,86 +1,167 @@
-using UnityEngine;
-using UnityEngine.SceneManagement; // ¾À °ü¸®¸¦ À§ÇØ ÇÊ¿ä
+ï»¿using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    // 1. ½Ì±ÛÅæ ÀÎ½ºÅÏ½º
     public static GameManager Instance;
 
-    // 2. ÇöÀç ·¹º§ ¹× ·¹º§ ´ç º¸³Ê½º ¼³Á¤
-    public int currentLevel = 1;
-    public int hpBonusPerLevel = 5;
-    public int damageBonusPerLevel = 1;
+    [Header("Game Level Settings")]
+    public int currentLevel = 1; // í˜„ì¬ ìŠ¤í…Œì´ì§€/ë‚œì´ë„ ë ˆë²¨
+    public int hpBonusPerLevel = 5;      // ëª¬ìŠ¤í„° ë ˆë²¨ë‹¹ ì²´ë ¥ ë³´ë„ˆìŠ¤
+    public int damageBonusPerLevel = 1;  // ëª¬ìŠ¤í„° ë ˆë²¨ë‹¹ ê³µê²©ë ¥ ë³´ë„ˆìŠ¤
 
     [Header("Tile Collapse Settings")]
-    public float baseCollapseDelay = 5.0f;     // ±âº» ºØ±« Áö¿¬ ½Ã°£ (VoxelCollapseÀÇ ±âº»°ª°ú ÀÏÄ¡½ÃÅ°¼¼¿ä)
-    public float delayReductionPerLevel = 0.5f; // ·¹º§´ç °¨¼ÒÇÒ ½Ã°£
-    public float minCollapseDelay = 0.1f;      // ÃÖ¼Ò ºØ±« Áö¿¬ ½Ã°£
-    public float currentCollapseDelay { get; private set; } // ÇöÀç ·¹º§ÀÇ °è»êµÈ ºØ±« Áö¿¬ ½Ã°£ (ÀĞ±â Àü¿ë)
+    public float baseCollapseDelay = 5.0f;
+    public float delayReductionPerLevel = 0.5f;
+    public float minCollapseDelay = 0.1f;
+    public float currentCollapseDelay { get; private set; }
+
+    // ğŸ”»ğŸ”»ğŸ”» [ì¶”ê°€] í”Œë ˆì´ì–´ ëŠ¥ë ¥ì¹˜ ì €ì¥ ë³€ìˆ˜ ğŸ”»ğŸ”»ğŸ”»
+    [Header("Player Stats")]
+    public int playerCurrentHP = 100;
+    public int playerMaxHP = 100;
+    public int playerCurrentEXP = 0;
+    public int playerCurrentLevel = 1;
+    public int playerAttackDamage = 1;
+    public int playerHpUpgradeCost = 1;
+    public int playerAttackUpgradeCost = 1;
+
+    // ğŸ”» [ì¶”ê°€] ì´ˆê¸° ëŠ¥ë ¥ì¹˜ ì €ì¥ìš© (ë¦¬ìŠ¤í° ì‹œ ì‚¬ìš©)
+    private int initialPlayerMaxHP;
+    private int initialPlayerAttackDamage;
+    private int initialPlayerLevel;
+    private int initialPlayerEXP;
+    private int initialHpUpgradeCost;
+    private int initialAttackUpgradeCost;
+    private bool playerStatsInitialized = false; // ë”± í•œ ë²ˆë§Œ ì´ˆê¸°ê°’ ì €ì¥í•˜ê¸° ìœ„í•œ í”Œë˜ê·¸
+    // ğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”º
 
     void Awake()
     {
-        // 3. ½Ì±ÛÅæ ¼³Á¤ (¾ÀÀÌ ¹Ù²î¾îµµ ÆÄ±«µÇÁö ¾ÊÀ½)
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // ÀÌ ¿ÀºêÁ§Æ®¸¦ ÆÄ±«ÇÏÁö ¾ÊÀ½
+            DontDestroyOnLoad(gameObject);
             CalculateCurrentCollapseDelay();
+
+            // ğŸ”» [ì¶”ê°€] ê²Œì„ ì‹œì‘ ì‹œ ë”± í•œ ë²ˆë§Œ í”Œë ˆì´ì–´ ì´ˆê¸° ëŠ¥ë ¥ì¹˜ ì €ì¥
+            if (!playerStatsInitialized)
+            {
+                InitializePlayerStats();
+                playerStatsInitialized = true;
+            }
         }
         else if (Instance != this)
         {
-            Destroy(gameObject); // ÀÌ¹Ì ÀÎ½ºÅÏ½º°¡ ÀÖÀ¸¸é ÀÚ½ÅÀ» ÆÄ±«
+            Destroy(gameObject);
         }
     }
 
-    // 4. ´ÙÀ½ ·¹º§(¾À)·Î ÀÌµ¿ÇÒ ¶§ È£ÃâÇÒ ÇÔ¼ö (¿¹½Ã)
-    // (¿¹: "Level_2" ¾ÀÀ¸·Î ÀÌµ¿)
+    // ğŸ”» [ì¶”ê°€] í”Œë ˆì´ì–´ ì´ˆê¸° ëŠ¥ë ¥ì¹˜ ì €ì¥ í•¨ìˆ˜
+    void InitializePlayerStats()
+    {
+        // í˜„ì¬ Inspectorì— ì„¤ì •ëœ ê°’ì„ ì´ˆê¸°ê°’ìœ¼ë¡œ ì €ì¥
+        initialPlayerMaxHP = playerMaxHP;
+        initialPlayerAttackDamage = playerAttackDamage;
+        initialPlayerLevel = playerCurrentLevel;
+        initialPlayerEXP = playerCurrentEXP;
+        initialHpUpgradeCost = playerHpUpgradeCost;
+        initialAttackUpgradeCost = playerAttackUpgradeCost;
+        // ì‹œì‘ ì‹œ í˜„ì¬ HPëŠ” ìµœëŒ€ HPì™€ ê°™ê²Œ
+        playerCurrentHP = playerMaxHP;
+        Debug.Log("Player initial stats saved.");
+    }
+
+
     public void LoadNextLevel(string sceneName)
     {
-        currentLevel++; // ·¹º§À» 1 ¿Ã¸³´Ï´Ù.
+        currentLevel++; // ìŠ¤í…Œì´ì§€ ë ˆë²¨ ì¦ê°€
         CalculateCurrentCollapseDelay();
-        SceneManager.LoadScene(sceneName); // ´ÙÀ½ ¾ÀÀ» ·ÎµåÇÕ´Ï´Ù.
+        SceneManager.LoadScene(sceneName);
     }
 
-    // ½ºÅ©¸³Æ®°¡ È°¼ºÈ­µÉ ¶§ ÀÌº¥Æ® ±¸µ¶
-    void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
+    void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
+    void OnDisable() { SceneManager.sceneLoaded -= OnSceneLoaded; }
 
-    // ½ºÅ©¸³Æ®°¡ ºñÈ°¼ºÈ­µÉ ¶§ ÀÌº¥Æ® ±¸µ¶ ÇØÁ¦ (¸Ş¸ğ¸® ´©¼ö ¹æÁö)
-    void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    // ¾ÀÀÌ ·ÎµåµÇ¾úÀ» ¶§ È£ÃâµÉ ÇÔ¼ö
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        Debug.Log(scene.name + " ¾À ·Îµå ¿Ï·á. ÇöÀç ·¹º§: " + currentLevel);
+        Debug.Log(scene.name + " Load Complete. Stage Level: " + currentLevel + ", Collapse Delay: " + currentCollapseDelay + "s");
 
-        // ·ÎµåµÈ ¾À¿¡¼­ LevelDisplay ÄÄÆ÷³ÍÆ®¸¦ Ã£½À´Ï´Ù.
         LevelDisplay levelDisplay = FindObjectOfType<LevelDisplay>();
-
-        // LevelDisplay¸¦ Ã£¾Ò´Ù¸é ShowLevel ÇÔ¼ö È£Ãâ
         if (levelDisplay != null)
         {
             levelDisplay.ShowLevel(currentLevel);
         }
-        else
-        {
-            // (¼±ÅÃÀû) ¸¸¾à Æ¯Á¤ ¾À(¿¹: ¸ŞÀÎ ¸Ş´º)¿¡ LevelDisplay°¡ ¾ø´Â °ÍÀÌ Á¤»óÀÌ¶ó¸é
-            // if (!scene.name.Contains("MainMenu")) // ¾À ÀÌ¸§À¸·Î ±¸ºĞ
-            // {
-            Debug.LogWarning("·ÎµåµÈ ¾À¿¡ LevelDisplay ¿ÀºêÁ§Æ®°¡ ¾ø½À´Ï´Ù!");
-            // }
-        }
+        else { Debug.LogWarning("LevelDisplay object not found in the loaded scene!"); }
     }
+
     void CalculateCurrentCollapseDelay()
     {
         currentCollapseDelay = baseCollapseDelay - (currentLevel - 1) * delayReductionPerLevel;
-        if (currentCollapseDelay < minCollapseDelay)
+        if (currentCollapseDelay < minCollapseDelay) currentCollapseDelay = minCollapseDelay;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
         {
-            currentCollapseDelay = minCollapseDelay;
+            RestartCurrentScene();
         }
     }
+
+    void RestartCurrentScene()
+    {
+        string currentSceneName = SceneManager.GetActiveScene().name;
+        Debug.Log("Restarting current scene: '" + currentSceneName + "'");
+        SceneManager.LoadScene(currentSceneName);
+    }
+
+    // ğŸ”»ğŸ”»ğŸ”» [ì¶”ê°€] í”Œë ˆì´ì–´ ëŠ¥ë ¥ì¹˜ ì—…ë°ì´íŠ¸ í•¨ìˆ˜ë“¤ ğŸ”»ğŸ”»ğŸ”»
+
+    public void UpdatePlayerHP(int newHP)
+    {
+        playerCurrentHP = Mathf.Clamp(newHP, 0, playerMaxHP); // HPê°€ 0 ë¯¸ë§Œ ë˜ëŠ” ìµœëŒ€ HP ì´ˆê³¼ ë°©ì§€
+    }
+
+    public void AddPlayerExperience(int amount)
+    {
+        playerCurrentEXP += amount;
+        // ë ˆë²¨ì—… ì²´í¬ ë¡œì§ì€ PlayerControllerì—ì„œ ì²˜ë¦¬ í›„ GameManager ê°’ ì—…ë°ì´íŠ¸ ìš”ì²­
+    }
+
+    public void UpdatePlayerLevelData(int newLevel, int newEXP, int newRequiredEXP) // ë ˆë²¨ì—… ì‹œ PlayerControllerê°€ í˜¸ì¶œ
+    {
+        playerCurrentLevel = newLevel;
+        playerCurrentEXP = newEXP;
+        // requiredEXPëŠ” PlayerControllerê°€ ê³„ì‚°í•˜ë¯€ë¡œ GameManagerëŠ” ì €ì¥ ì•ˆ í•¨
+    }
+
+    public void UpgradePlayerHPStat(int newMaxHP, int newCurrentHP, int newCost, int levelUsed)
+    {
+        playerMaxHP = newMaxHP;
+        playerCurrentHP = newCurrentHP; // ì—…ê¸€ ì‹œ HP ì•ˆ ì°¨ëŠ” ë¡œì§ ë°˜ì˜
+        playerHpUpgradeCost = newCost;
+        playerCurrentLevel -= levelUsed; // ì‚¬ìš©í•œ ë ˆë²¨ ë°˜ì˜
+    }
+
+    public void UpgradePlayerAttackStat(int newAttack, int newCost, int levelUsed)
+    {
+        playerAttackDamage = newAttack;
+        playerAttackUpgradeCost = newCost;
+        playerCurrentLevel -= levelUsed; // ì‚¬ìš©í•œ ë ˆë²¨ ë°˜ì˜
+    }
+
+    // ë¦¬ìŠ¤í° ì‹œ í˜¸ì¶œë  í•¨ìˆ˜ (PlayerControllerì—ì„œ í˜¸ì¶œ)
+    public void ResetPlayerStatsToInitial()
+    {
+        playerCurrentHP = initialPlayerMaxHP;
+        playerMaxHP = initialPlayerMaxHP;
+        playerCurrentEXP = initialPlayerEXP;
+        playerCurrentLevel = initialPlayerLevel;
+        playerAttackDamage = initialPlayerAttackDamage;
+        playerHpUpgradeCost = initialHpUpgradeCost;
+        playerAttackUpgradeCost = initialAttackUpgradeCost;
+        Debug.Log("Player stats have been reset to initial values in GameManager.");
+    }
+    // ğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”ºğŸ”º
 }

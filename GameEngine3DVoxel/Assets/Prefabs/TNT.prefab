@@ -316,6 +316,7 @@ MonoBehaviour:
   firePoint: {fileID: 8240967186303180834}
   maxHP: 15
   currentHP: 0
+  experienceValue: 10
   hpSlider: {fileID: 4108449116979658776}
 --- !u!1 &6339597960517106182
 GameObject:

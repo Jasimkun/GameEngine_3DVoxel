@@ -116,10 +116,12 @@ public class Dash : MonoBehaviour, IDamageable
                 if (dist < traceRange) state = EnemyState.Trace;
                 break;
             case EnemyState.Trace:
+                TryFallCheck();
                 if (dist < chargeRange) state = EnemyState.Charge;
                 else TracePlayer();
                 break;
             case EnemyState.Charge:
+                TryFallCheck();
                 if (dist > chargeRange) state = EnemyState.Trace;
                 else ChargePlayer();
                 break;
@@ -322,4 +324,29 @@ public class Dash : MonoBehaviour, IDamageable
             }
         }
     }
+
+    void TryFallCheck()
+    {
+        if (!CheckGround(transform.position))
+        {
+            Fall();
+        }
+        else
+        {
+            SnapToGround(); // 땅 위에 있으면 isKinematic = true로 유지
+        }
+    }
+
+    void Fall()
+    {
+        // isKinematic을 false로 바꿔 물리 엔진의 영향을 받도록 함
+        enemyRigidbody.isKinematic = false;
+        // 회전은 계속 고정
+        enemyRigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+        // 중력 사용 시작
+        enemyRigidbody.useGravity = true;
+        // 상태를 Idle로 변경 (떨어지는 동안 특별한 행동 X)
+        state = EnemyState.Idle;
+        Debug.Log(gameObject.name + " is falling!"); // 떨어짐 로그 (확인용)
+    }
 }
