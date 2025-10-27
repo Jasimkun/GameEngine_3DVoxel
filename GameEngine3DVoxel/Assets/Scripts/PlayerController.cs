@@ -8,6 +8,7 @@ using TMPro; // TMP 사용
 
 public class PlayerController : MonoBehaviour
 {
+    // --- 이동 관련 변수 ---
     private float speed;
     private float walkSpeed = 5f;
     private float runSpeed = 12f;
@@ -15,26 +16,30 @@ public class PlayerController : MonoBehaviour
     private float jumpPower = 7f;
     private float stopJumpPower = 0f;
 
-    // 🔥 경험치 및 레벨 관련 변수 (public: InventoryShopManager 접근용)
+    // --- 레벨 및 경험치 변수 ---
     public int currentLevel = 1;
     public int currentEXP = 0;
-    private int requiredEXP = 25;
-
-    // 🔥 레벨업에 필요한 기본 경험치 및 증가량 상수
+    private int requiredEXP; // Start에서 계산됨
     private const int BASE_EXP_TO_NEXT_LEVEL = 25;
     private const int EXP_INCREASE_PER_LEVEL = 10;
+    // 📢 초기 레벨/경험치 저장용
+    private int initialLevel = 1;
+    private int initialEXP = 0;
 
-    // 📢 플레이어가 적에게 주는 데미지/공격력 (public: InventoryShopManager 접근용)
+
+    // --- 능력치 변수 ---
     public int attackDamage = 1;
-
-    // 📢 업그레이드 비용: 다음 업그레이드에 필요한 레벨 (public: InventoryShopManager 접근용)
     public int hpUpgradeLevelCost = 1;
     public int attackUpgradeLevelCost = 1;
-
-    // 📢 업그레이드 효과량 상수
     public const int HP_UPGRADE_AMOUNT = 10;
     public const int ATTACK_UPGRADE_AMOUNT = 1;
+    // 📢 초기 능력치 저장용
+    private int initialAttackDamage = 1;
+    private int initialHpUpgradeLevelCost = 1;
+    private int initialAttackUpgradeLevelCost = 1;
 
+
+    // --- 카메라 및 컨트롤러 ---
     public CinemachineSwitcher cinemachineSwitcher;
     public float gravity = -9.81f;
     public CinemachineVirtualCamera virtualCam;
@@ -44,76 +49,103 @@ public class PlayerController : MonoBehaviour
     private Vector3 velocity;
     public bool isGrounded;
 
-    // 📢 최대 HP 및 현재 HP (public: InventoryShopManager 접근용)
+    // --- HP 관련 변수 ---
     public int maxHP = 100;
     public int currentHP;
     public Slider hpSlider;
+    // 📢 초기 HP 저장용
+    private int initialMaxHP = 100;
 
-    // 📢 UI 연결 변수
+    // --- UI 연결 변수 ---
     [Header("UI")]
     public Slider expSlider;
     public Image expFillImage;
+    public GameObject respawnPanel; // 📢 <<< 리스폰 패널 UI 연결
 
-    // 📢 시스템 참조: 인벤토리/상점 관리자
+    // --- 시스템 참조 ---
     [Header("System References")]
     public InventoryShopManager inventoryShopManager;
 
-    // === DOT (Damage Over Time) 설정 변수 ===
+    // --- 기타 변수 ---
     private Coroutine fireDotCoroutine;
+    private Vector3 startPosition; // 현재 스폰 위치 (SafeZone 등으로 갱신 가능)
+    private Vector3 initialSpawnPosition; // 📢 <<< 게임 시작 시점의 스폰 위치
+    private Animator anim; // 애니메이터
 
-    // === 리스폰 설정 변수 ===
-    [Header("Respawn Settings")]
-    private Vector3 startPosition;
-
-    // 📢 1. 복셀 애니메이션을 위한 Animator 변수 추가 (NekoController에서 가져옴)
-    private Animator anim;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         pov = virtualCam.GetCinemachineComponent<CinemachinePOV>();
+        anim = GetComponentInChildren<Animator>(); // 자식 포함 애니메이터 찾기
 
-        // 📢 2. Animator 컴포넌트 가져오기 (NekoController의 Start()에서 가져옴)
-        anim = GetComponentInChildren<Animator>();
+        // 📢 초기 능력치 저장
+        initialMaxHP = maxHP;
+        initialAttackDamage = attackDamage;
+        initialLevel = currentLevel;
+        initialEXP = currentEXP;
+        initialHpUpgradeLevelCost = hpUpgradeLevelCost;
+        initialAttackUpgradeLevelCost = attackUpgradeLevelCost;
+        initialSpawnPosition = transform.position; // 게임 시작 위치 저장
 
-        // 📢 HP 초기화
+        // 초기화
         currentHP = maxHP;
-        hpSlider.maxValue = maxHP;
-        hpSlider.value = currentHP;
-
-        startPosition = transform.position;
-
+        if (hpSlider != null) // null 체크 추가
+        {
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
+        }
+        startPosition = initialSpawnPosition; // 현재 스폰 위치 초기화
         CalculateRequiredEXP();
         UpdateEXPSlider();
+
+        // 리스폰 패널 비활성화 확인
+        if (respawnPanel != null)
+        {
+            respawnPanel.SetActive(false);
+        }
+        else
+        {
+            Debug.LogWarning("리스폰 패널(Respawn Panel)이 연결되지 않았습니다.", this.gameObject);
+        }
+
+        // 초기 커서 상태 설정
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Update()
     {
-        // === Inventory/Shop Toggle 로직 ===
+        // 📢 사망 상태에서는 조작 불가
+        if (respawnPanel != null && respawnPanel.activeSelf)
+        {
+            return;
+        }
+
+        // === 인벤토리/상점 로직 ===
         if (Input.GetKeyDown(KeyCode.E))
         {
             if (inventoryShopManager != null)
             {
                 inventoryShopManager.ToggleInventoryShop(this);
             }
-            else
-            {
-                Debug.LogError("InventoryShopManager reference is missing on PlayerController!");
-            }
+            else { Debug.LogError("InventoryShopManager 참조가 없습니다!"); }
         }
-
         if (inventoryShopManager != null && inventoryShopManager.IsPanelOpen)
         {
-            return;
+            return; // 인벤토리 열려있으면 아래 로직 실행 안 함
         }
 
-        // === 입력 및 속도 제어 ===
-        if (Input.GetKeyDown(KeyCode.Tab))
-        {
-            pov.m_HorizontalAxis.Value = transform.eulerAngles.y;
-            pov.m_VerticalAxis.Value = 0f;
-        }
+        // === 이동 및 카메라/애니메이션 로직 ===
+        HandleMovementInput(); // 이동 관련 로직 함수로 분리 (가독성)
+        HandleCameraAndRotation();
+        ApplyGravity();
+        HandleAnimation();
+    }
 
+    // 이동 입력 처리 함수
+    void HandleMovementInput()
+    {
         if (cinemachineSwitcher.usingFreeLook == true)
         {
             speed = stopSpeed;
@@ -122,113 +154,82 @@ public class PlayerController : MonoBehaviour
         else
         {
             jumpPower = 7f;
-
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                speed = runSpeed;
-                virtualCam.m_Lens.FieldOfView = 80f;
-            }
-            else
-            {
-                speed = walkSpeed;
-                virtualCam.m_Lens.FieldOfView = 60f;
-            }
+            speed = Input.GetKey(KeyCode.LeftShift) ? runSpeed : walkSpeed;
+            virtualCam.m_Lens.FieldOfView = Input.GetKey(KeyCode.LeftShift) ? 80f : 60f;
         }
 
-        // === 땅 확인 및 점프 로직 ===
         isGrounded = controller.isGrounded;
-
-        if (isGrounded)
+        if (isGrounded && velocity.y < 0)
         {
-            if (velocity.y < 0)
-            {
-                velocity.y = -2f;
-            }
-
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                velocity.y = jumpPower;
-            }
+            velocity.y = -2f; // 땅에 붙어있도록 살짝 아래로 힘 적용
         }
 
+        // 점프
+        if (isGrounded && Input.GetKeyDown(KeyCode.Space))
+        {
+            velocity.y = jumpPower;
+        }
+    }
+
+    // 카메라 방향 기준 이동 및 회전 처리 함수
+    void HandleCameraAndRotation()
+    {
         float x = Input.GetAxis("Horizontal");
         float z = Input.GetAxis("Vertical");
 
-        // 📢 3. NekoController의 애니메이션 로직을 여기에 추가!
-        // ---------------------------------------------------
-        if (anim != null) // Animator가 있는지 확인
-        {
-            // x(Horizontal) 또는 z(Vertical) 입력 값이 0이 아니면 (즉, 움직이고 있으면)
-            if (x != 0f || z != 0f)
-            {
-                anim.SetInteger("Walk", 1); // 걷기 애니메이션 재생
-            }
-            else
-            {
-                anim.SetInteger("Walk", 0); // 멈춤 (Idle) 애니메이션
-            }
-        }
-        // ---------------------------------------------------
-
-
-        // === 이동 및 회전 로직 ===
         Vector3 camForward = virtualCam.transform.forward;
         camForward.y = 0;
         camForward.Normalize();
-
         Vector3 camRight = virtualCam.transform.right;
         camRight.y = 0;
         camRight.Normalize();
 
-        Vector3 move = (camForward * z + camRight * x).normalized;
-        controller.Move(move * speed * Time.deltaTime);
+        Vector3 moveDirection = (camForward * z + camRight * x).normalized;
+        controller.Move(moveDirection * speed * Time.deltaTime);
 
-        float cameraYaw = pov.m_HorizontalAxis.Value;
-        Quaternion targetRot = Quaternion.Euler(0f, cameraYaw, 0f);
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+        // 카메라 방향으로 회전 (FreeLook 아닐 때만)
+        if (!cinemachineSwitcher.usingFreeLook)
+        {
+            float cameraYaw = pov.m_HorizontalAxis.Value;
+            Quaternion targetRot = Quaternion.Euler(0f, cameraYaw, 0f);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+        }
 
+        // Tab 키 카메라 리셋
+        if (Input.GetKeyDown(KeyCode.Tab))
+        {
+            pov.m_HorizontalAxis.Value = transform.eulerAngles.y;
+            pov.m_VerticalAxis.Value = 0f;
+        }
+    }
 
-        // === 중력 적용 ===
+    // 중력 적용 함수
+    void ApplyGravity()
+    {
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
 
-    private void OnTriggerEnter(Collider other)
+    // 애니메이션 처리 함수
+    void HandleAnimation()
     {
-        if (other.CompareTag("DeadZone"))
+        if (anim != null)
         {
-            Debug.Log("으악!");
-            Respawn();
+            float x = Input.GetAxis("Horizontal");
+            float z = Input.GetAxis("Vertical");
+            bool isMoving = (x != 0f || z != 0f); // 이동 중인지 확인
+            anim.SetInteger("Walk", isMoving ? 1 : 0);
         }
     }
 
-
-    // === 리스폰 함수 ===
-    void Respawn()
-    {
-        if (fireDotCoroutine != null)
-        {
-            StopCoroutine(fireDotCoroutine);
-            fireDotCoroutine = null;
-        }
-
-        controller.enabled = false;
-        transform.position = startPosition;
-        controller.enabled = true;
-
-        velocity = Vector3.zero;
-
-        currentHP = maxHP;
-        hpSlider.value = currentHP;
-    }
 
     // === 피해 및 사망 로직 ===
     public void TakeDamage(int damage)
     {
-        currentHP -= damage;
+        if (currentHP <= 0 || (respawnPanel != null && respawnPanel.activeSelf)) return;
 
-        // HP 슬라이더 표시 문제 해결 (value에 실제 currentHP 값을 대입)
-        hpSlider.value = currentHP;
+        currentHP -= damage;
+        if (hpSlider != null) hpSlider.value = currentHP; // null 체크 후 값 설정
 
         if (currentHP <= 0)
         {
@@ -238,152 +239,192 @@ public class PlayerController : MonoBehaviour
 
     void Die()
     {
-        Respawn();
-    }
-
-    // ===========================================
-    // === 신규 추가 함수 (SafeZone용) ===
-    // ===========================================
-
-    // 📢 (새로 추가) 체력 회복 함수
-    public void HealToAmount(int targetHP)
-    {
-        // 현재 HP가 목표치(50% HP)보다 높으면 회복하지 않습니다.
-        if (currentHP >= targetHP)
+        Debug.Log("플레이어가 사망했습니다!");
+        if (respawnPanel != null)
         {
-            //Debug.Log("이미 HP가 회복 목표치보다 높습니다.");
-            return;
+            respawnPanel.SetActive(true);
+            Time.timeScale = 0f;
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
-
-        // 최대 HP를 넘지 않도록 합니다.
-        currentHP = Mathf.Min(targetHP, maxHP);
-
-        // 슬라이더 업데이트 (maxValue가 maxHP로 설정되어 있으므로, value에 currentHP를 바로 넣습니다)
-        hpSlider.value = currentHP;
-
-        Debug.Log("체럭이 " + currentHP + "까지 회복되었어!");
+        else
+        {
+            Debug.LogError("리스폰 패널(Respawn Panel)이 연결되지 않았습니다!");
+        }
     }
 
-    // 📢 (새로 추가) 스폰 포인트 갱신 함수
-    public void UpdateSpawnPoint(Vector3 newSpawnPosition)
+    // 📢 리스폰 버튼 클릭 시 호출될 함수
+    public void ManualRespawn()
     {
-        startPosition = newSpawnPosition;
-        //Debug.Log("새로운 스폰 포인트가 설정되었습니다: " + newSpawnPosition);
+        if (respawnPanel != null)
+        {
+            respawnPanel.SetActive(false);
+        }
+        Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        Respawn(); // 실제 리스폰 로직 호출
     }
 
 
-    // === DOT 로직 ===
-    public void StartDamageOverTime(int damage, float duration, float interval)
+    // === 리스폰 함수 (능력치 초기화 추가) ===
+    void Respawn()
     {
+        // DOT 코루틴 중지
         if (fireDotCoroutine != null)
         {
             StopCoroutine(fireDotCoroutine);
+            fireDotCoroutine = null;
         }
-        fireDotCoroutine = StartCoroutine(DamageOverTimeCoroutine(damage, duration, interval));
-    }
 
-    private IEnumerator DamageOverTimeCoroutine(int damage, float duration, float interval)
-    {
-        float endTime = Time.time + duration;
-        while (Time.time < endTime)
+        // 위치 이동 (startPosition 사용)
+        controller.enabled = false;
+        transform.position = startPosition; // startPosition은 SafeZone 등으로 갱신될 수 있음
+        controller.enabled = true;
+        velocity = Vector3.zero;
+
+        // 📢 능력치 초기화!
+        maxHP = initialMaxHP;
+        currentHP = initialMaxHP;
+        attackDamage = initialAttackDamage;
+        currentLevel = initialLevel;
+        currentEXP = initialEXP;
+        hpUpgradeLevelCost = initialHpUpgradeLevelCost;
+        attackUpgradeLevelCost = initialAttackUpgradeLevelCost;
+        startPosition = initialSpawnPosition; // 스폰 위치도 게임 시작 위치로 초기화
+
+        // UI 업데이트
+        if (hpSlider != null) // null 체크
         {
-            TakeDamage(damage);
-            yield return new WaitForSeconds(interval);
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
         }
-        fireDotCoroutine = null;
+        CalculateRequiredEXP();
+        UpdateEXPSlider();
+
+        // 인벤토리 열려있으면 스탯 갱신
+        if (inventoryShopManager != null && inventoryShopManager.IsPanelOpen)
+        {
+            inventoryShopManager.UpdateStats(this);
+        }
+
+        Debug.Log("플레이어가 리스폰되었습니다. (능력치 초기화됨)");
     }
 
-    // 🔥 경험치 획득 메서드
+
+    // ===========================================
+    // === 나머지 함수들 (SafeZone, 경험치, 업그레이드 등) ===
+    // ===========================================
+    public void HealToAmount(int targetHP)
+    {
+        if (currentHP >= targetHP) return;
+        currentHP = Mathf.Min(targetHP, maxHP);
+        if (hpSlider != null) hpSlider.value = currentHP;
+        Debug.Log("체력이 " + currentHP + "까지 회복되었어!");
+    }
+
+    public void UpdateSpawnPoint(Vector3 newSpawnPosition)
+    {
+        startPosition = newSpawnPosition;
+        // Debug.Log("새로운 스폰 포인트가 설정되었습니다: " + newSpawnPosition);
+    }
+
     public void AddExperience(int amount)
     {
         currentEXP += amount;
-
         UpdateEXPSlider();
         CheckForLevelUp();
-
         if (inventoryShopManager != null && inventoryShopManager.IsPanelOpen)
         {
             inventoryShopManager.UpdateStats(this);
         }
     }
 
-    // 🔥 레벨업 확인 및 처리
     private void CheckForLevelUp()
     {
-        while (currentEXP >= requiredEXP)
+        while (currentEXP >= requiredEXP && requiredEXP > 0) // requiredEXP가 0보다 클 때만 실행
         {
             currentLevel++;
             currentEXP -= requiredEXP;
             CalculateRequiredEXP();
-
-            UpdateEXPSlider();
+            UpdateEXPSlider(); // 레벨업 후 슬라이더 갱신
         }
     }
 
-    // 🔥 다음 레벨업에 필요한 경험치를 계산하는 메서드
     private void CalculateRequiredEXP()
     {
         requiredEXP = BASE_EXP_TO_NEXT_LEVEL + (currentLevel - 1) * EXP_INCREASE_PER_LEVEL;
+        if (requiredEXP <= 0) requiredEXP = BASE_EXP_TO_NEXT_LEVEL; // 0 이하 방지
     }
 
-    // 📢 경험치 슬라이더 업데이트
     private void UpdateEXPSlider()
     {
         if (expSlider == null) return;
-
-        float expPercentage = (float)currentEXP / requiredEXP;
-        expSlider.value = expPercentage;
-
+        // requiredEXP가 0이면 나누기 오류 발생 방지
+        expSlider.value = (requiredEXP > 0) ? (float)currentEXP / requiredEXP : 0f;
         if (expFillImage != null)
         {
             expFillImage.enabled = currentEXP > 0;
         }
     }
 
-    // ===========================================
-    // 📢 상점 업그레이드 메서드 (Level Cost 증가 로직 적용)
-    // ===========================================
-
-    // 📢 최대 체력 업그레이드
     public bool TryUpgradeMaxHP()
     {
         if (currentLevel >= hpUpgradeLevelCost)
         {
             currentLevel -= hpUpgradeLevelCost;
-
             maxHP += HP_UPGRADE_AMOUNT;
-            currentHP = maxHP; // 체력 업그레이드 시 현재 체력도 최대치로 회복
-
-            hpUpgradeLevelCost++; // 📢 다음 업그레이드 비용 1 증가
-
-            hpSlider.maxValue = maxHP;
-            hpSlider.value = currentHP;
-
-            UpdateEXPSlider();
-            inventoryShopManager.UpdateStats(this);
-
+            currentHP = maxHP;
+            hpUpgradeLevelCost++;
+            if (hpSlider != null) { hpSlider.maxValue = maxHP; hpSlider.value = currentHP; }
+            UpdateEXPSlider(); // 레벨 사용 후 슬라이더 갱신
+            if (inventoryShopManager != null) inventoryShopManager.UpdateStats(this);
             return true;
         }
         return false;
     }
 
-    // 📢 공격력 업그레이드
     public bool TryUpgradeAttackPower()
     {
         if (currentLevel >= attackUpgradeLevelCost)
         {
             currentLevel -= attackUpgradeLevelCost;
-
-            // 플레이어가 주는 데미지/공격력 변수 증가
             attackDamage += ATTACK_UPGRADE_AMOUNT;
-
-            attackUpgradeLevelCost++; // 📢 다음 업그레이드 비용 1 증가
-
-            UpdateEXPSlider();
-            inventoryShopManager.UpdateStats(this);
-
+            attackUpgradeLevelCost++;
+            UpdateEXPSlider(); // 레벨 사용 후 슬라이더 갱신
+            if (inventoryShopManager != null) inventoryShopManager.UpdateStats(this);
             return true;
         }
         return false;
+    }
+
+    // DOT 관련 함수
+    public void StartDamageOverTime(int damage, float duration, float interval)
+    {
+        if (fireDotCoroutine != null) StopCoroutine(fireDotCoroutine);
+        fireDotCoroutine = StartCoroutine(DamageOverTimeCoroutine(damage, duration, interval));
+    }
+    private IEnumerator DamageOverTimeCoroutine(int damage, float duration, float interval)
+    {
+        float endTime = Time.time + duration;
+        while (Time.time < endTime)
+        {
+            TakeDamage(damage); // TakeDamage 내부에서 currentHP <= 0 체크
+            if (currentHP <= 0) yield break; // 죽으면 코루틴 중지
+            yield return new WaitForSeconds(interval);
+        }
+        fireDotCoroutine = null;
+    }
+
+    // DeadZone 관련 함수
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("DeadZone"))
+        {
+            Debug.Log("으악!");
+            // 📢 DeadZone에서는 즉시 리스폰 및 초기화
+            Die();
+        }
     }
 }
