@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Game Level Settings")]
     public int currentLevel = 1; // 현재 스테이지/난이도 레벨
-    public int hpBonusPerLevel = 5;      // 몬스터 레벨당 체력 보너스
+    public int hpBonusPerLevel = 5;       // 몬스터 레벨당 체력 보너스
     public int damageBonusPerLevel = 1;  // 몬스터 레벨당 공격력 보너스
 
     [Header("Tile Collapse Settings")]
@@ -72,12 +72,21 @@ public class GameManager : MonoBehaviour
         Debug.Log("Player initial stats saved.");
     }
 
-
+    // 🟢 [수정] 레벨 전환 전 준비 함수 호출
     public void LoadNextLevel(string sceneName)
     {
+        PrepareForNextLevel(); // ⬅️ 다음 레벨 진입 전 준비 (모든 상태 유지)
         currentLevel++; // 스테이지 레벨 증가
         CalculateCurrentCollapseDelay();
         SceneManager.LoadScene(sceneName);
+    }
+
+    // 🟢 [수정] 다음 레벨 진입 시 모든 능력치와 현재 HP를 그대로 유지하는 함수
+    public void PrepareForNextLevel()
+    {
+        // 레벨을 넘어갈 때 업그레이드된 능력치(Max HP, 공격력, 레벨, EXP)와 현재 HP를 모두 그대로 유지합니다.
+        // HP 회복 로직은 제거되었습니다. (playerCurrentHP 값 변경 없음)
+        Debug.Log("Player successfully prepared for next level. All current stats and HP preserved.");
     }
 
     void OnEnable() { SceneManager.sceneLoaded += OnSceneLoaded; }
@@ -130,6 +139,11 @@ public class GameManager : MonoBehaviour
     void RestartCurrentScene()
     {
         string currentSceneName = SceneManager.GetActiveScene().name;
+
+        // 🚨 중요: 씬을 재시작해도 능력치를 유지하려면, 여기서 ResetPlayerStatsToInitial()을 호출하면 안 됩니다.
+        // 만약 '1'을 누르는 것이 죽고 나서 리스폰을 의미한다면, 아래 주석을 해제하세요.
+        // ResetPlayerStatsToInitial(); 
+
         Debug.Log("Restarting current scene: '" + currentSceneName + "'");
         SceneManager.LoadScene(currentSceneName);
     }
@@ -169,7 +183,7 @@ public class GameManager : MonoBehaviour
         playerCurrentLevel -= levelUsed; // 사용한 레벨 반영
     }
 
-    // 리스폰 시 호출될 함수 (PlayerController에서 호출)
+    // 리스폰 시 호출될 함수 (PlayerController에서 호출) - 이 함수는 게임 오버 또는 완전한 리스폰 시에만 호출되어야 합니다.
     public void ResetPlayerStatsToInitial()
     {
         playerCurrentHP = initialPlayerMaxHP;
