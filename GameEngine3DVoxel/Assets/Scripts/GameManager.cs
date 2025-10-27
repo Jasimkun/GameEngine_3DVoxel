@@ -107,6 +107,24 @@ public class GameManager : MonoBehaviour
         {
             RestartCurrentScene();
         }
+
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+        {
+            // 현재 씬에 있는 PlayerController를 찾습니다.
+            PlayerController player = FindObjectOfType<PlayerController>();
+
+            // PlayerController를 찾았으면 AddExperience 함수 호출
+            if (player != null)
+            {
+                int expAmount = 50;
+                player.AddExperience(expAmount); // PlayerController의 함수를 호출해야 UI 갱신 및 레벨업 체크가 됩니다.
+                Debug.Log($"CHEAT: Added {expAmount} EXP!"); // 콘솔에 치트 사용 로그 출력
+            }
+            else
+            {
+                Debug.LogWarning("CHEAT: PlayerController not found in the current scene. Cannot add EXP.");
+            }
+        }
     }
 
     void RestartCurrentScene()
