@@ -13843,14 +13843,17 @@ MonoBehaviour:
   projectilePrefab: {fileID: 6327266548910790386, guid: 7dd3c2757f35dfc4db169755f5aba8b5,
     type: 3}
   firePoint: {fileID: 1388891671}
+  gunCooldown: 1
   weaponImageUI: {fileID: 784593852}
   gunSprite: {fileID: -148807543, guid: 12856f7311779b144a766f8bc9b83c11, type: 3}
+  gunCooldownSprite: {fileID: 1008762225, guid: ee6c75c4ffc902f4aae3b26b01e43727,
+    type: 3}
   swordReadySprite: {fileID: 214115890, guid: 0b18a45e033be3e419d0a96ac0c095a7, type: 3}
   swordCooldownSprite: {fileID: 373235556, guid: 00fc564f22ce50646a1808db7573b32b,
     type: 3}
   inventoryGunIcon: {fileID: 1063503278}
   inventorySwordIcon: {fileID: 2091835190}
-  meleeCooldown: 1
+  meleeCooldown: 0.5
   meleeRange: 2
   swordEffectPrefab: {fileID: 5503505460791601945, guid: 74c549d1b06b6b140a1fd9536eea637f,
     type: 3}

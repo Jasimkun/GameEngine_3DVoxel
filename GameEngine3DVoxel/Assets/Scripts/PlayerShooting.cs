@@ -5,46 +5,52 @@ using UnityEngine.UI; // Image 컴포넌트를 사용하기 위해 추가
 
 public class PlayerShooting : MonoBehaviour
 {
-    // 📢 PlayerController 참조 (데미지 정보를 가져오기 위함)
-    public PlayerController playerController;
+    // 📢 PlayerController 참조 (데미지 정보를 가져오기 위함)
+    public PlayerController playerController;
 
-    // --- 총 (Projectile/Gun) 공격 변수 ---
-    [Header("Gun Settings")]
+    // --- 총 (Projectile/Gun) 공격 변수 ---
+    [Header("Gun Settings")]
     public GameObject projectilePrefab; // 총알 프리팹
-    public Transform firePoint;        // 발사 지점
+    public Transform firePoint;        // 발사 지점
+    // 🔻 1. [추가] 총 공격 쿨타임 및 상태 변수
+    public float gunCooldown = 1.5f;   // 총 공격 쿨타임 (1.5초)
+    private bool canShootGun = true;   // 총 발사 가능 여부
 
-    // 📢 UI 이미지 변수 및 스프라이트 추가
-    [Header("UI Settings")]
-    public Image weaponImageUI;      // 현재 무기 상태를 표시할 Image UI 컴포넌트
-    public Sprite gunSprite;         // 총 모드일 때 사용할 스프라이트
-    public Sprite swordReadySprite;  // 칼 모드 (쿨타임 X)일 때 사용할 스프라이트
-    public Sprite swordCooldownSprite; // 칼 모드 (쿨타임 O)일 때 사용할 스프라이트
+    // 📢 UI 이미지 변수 및 스프라이트 추가
+    [Header("UI Settings")]
+    public Image weaponImageUI;      // 현재 무기 상태를 표시할 Image UI 컴포넌트
+    public Sprite gunSprite;         // 총 모드 (쿨타임 X) 스프라이트
+    // 🔻 2. [추가] 총 쿨타임 스프라이트 변수
+    public Sprite gunCooldownSprite; // 총 모드 (쿨타임 O) 스프라이트
+    public Sprite swordReadySprite;  // 칼 모드 (쿨타임 X) 스프라이트
+    public Sprite swordCooldownSprite; // 칼 모드 (쿨타임 O) 스프라이트
 
-    private bool isMeleeMode = false; // 📢 현재 칼 모드인지 추적 (false = 총, true = 칼)
+    private bool isMeleeMode = false; // 현재 칼 모드인지 추적 (false = 총, true = 칼)
 
-    // 📢 인벤토리 UI에 연결할 무기 아이콘 추가
-    [Header("Inventory UI")]
-    public GameObject inventoryGunIcon;   // 인벤토리의 총 아이콘 (GameObject)
-    public GameObject inventorySwordIcon; // 인벤토리의 칼 아이콘 (GameObject)
+    // 📢 인벤토리 UI에 연결할 무기 아이콘 추가
+    [Header("Inventory UI")]
+    public GameObject inventoryGunIcon;   // 인벤토리의 총 아이콘 (GameObject)
+    public GameObject inventorySwordIcon; // 인벤토리의 칼 아이콘 (GameObject)
 
-    // --- 칼 (Melee/Sword) 공격 변수 ---
-    [Header("Sword Settings")]
-    public float meleeCooldown = 1f;    // 칼 공격 쿨타임 (1초)
+    // --- 칼 (Melee/Sword) 공격 변수 ---
+    [Header("Sword Settings")]
+    // 🔻 3. [수정] 칼 쿨타임 0.5초로 변경
+    public float meleeCooldown = 0.5f;
     private bool canMeleeAttack = true; // 칼 공격 가능 여부
-    public float meleeRange = 2.0f;     // 근접 공격 범위 (유니티에서 조정 가능)
-    public GameObject swordEffectPrefab; // 📢 이펙트 프리팹 변수
+    public float meleeRange = 2.0f;     // 근접 공격 범위
+    public GameObject swordEffectPrefab; // 이펙트 프리팹
 
-    // --- 무기 모델 관리 변수 ---
-    [Header("Weapon Models")]
-    public GameObject gunModelPrefab;    // 총 모델 프리팹
-    public GameObject swordModelPrefab;  // 칼 모델 프리팹
-    private GameObject gunModelInstance;  // 생성된 총 모델 인스턴스
-    private GameObject swordModelInstance; // 생성된 칼 모델 인스턴스
+    // --- 무기 모델 관리 변수 ---
+    [Header("Weapon Models")]
+    public GameObject gunModelPrefab;    // 총 모델 프리팹
+    public GameObject swordModelPrefab;  // 칼 모델 프리팹
+    private GameObject gunModelInstance;  // 생성된 총 모델 인스턴스
+    private GameObject swordModelInstance; // 생성된 칼 모델 인스턴스
 
-    // 📢 무기 모델 회전 오프셋 추가
-    [Header("Weapon Model Rotation")]
-    public Vector3 gunRotationOffset = new Vector3(0, 90, 0); // 인스펙터에서 조정 가능
-    public Vector3 swordRotationOffset = new Vector3(0, 0, 0); // 인스펙터에서 조정 가능
+    // 📢 무기 모델 회전 오프셋 추가
+    [Header("Weapon Model Rotation")]
+    public Vector3 gunRotationOffset = new Vector3(0, 90, 0);
+    public Vector3 swordRotationOffset = new Vector3(0, 0, 0);
 
     Camera cam;
 
@@ -52,244 +58,184 @@ public class PlayerShooting : MonoBehaviour
     {
         cam = Camera.main;
 
-        // PlayerController 참조를 찾습니다.
-        if (playerController == null)
+        if (playerController == null) playerController = GetComponent<PlayerController>();
+        if (playerController == null) Debug.LogError("PlayerController 스크립트를 찾을 수 없습니다.");
+
+        // 무기 모델 인스턴스화
+        if (firePoint != null)
         {
-            playerController = GetComponent<PlayerController>();
+            if (gunModelPrefab != null) gunModelInstance = Instantiate(gunModelPrefab, firePoint.position, Quaternion.identity, firePoint);
+            if (swordModelPrefab != null) swordModelInstance = Instantiate(swordModelPrefab, firePoint.position, Quaternion.identity, firePoint);
         }
 
-        if (playerController == null)
-        {
-            Debug.LogError("PlayerController 스크립트를 찾을 수 없습니다. 데미지 정보를 가져올 수 없습니다.");
-        }
+        ApplyModelRotation(); // 로컬 회전 적용
 
-        // 무기 모델 인스턴스화 및 로컬 회전 초기화
-        if (firePoint != null)
-        {
-            if (gunModelPrefab != null)
-            {
-                gunModelInstance = Instantiate(gunModelPrefab, firePoint.position, Quaternion.identity, firePoint);
-            }
-            if (swordModelPrefab != null)
-            {
-                swordModelInstance = Instantiate(swordModelPrefab, firePoint.position, Quaternion.identity, firePoint);
-            }
-        }
+        // 🔻 4. [추가] 총 발사 가능 상태로 초기화
+        canShootGun = true;
 
-        // 로컬 회전 오프셋을 적용하여 무기 기울기 설정
-        ApplyModelRotation();
-
-        // 시작 시 무기 UI 및 모델을 총 모드로 초기화합니다.
-        UpdateWeaponUI();
+        // 시작 시 무기 UI 및 모델 초기화
+        UpdateWeaponUI();
         UpdateWeaponModel();
-
-        // 📢 시작 시 인벤토리 아이콘들이 활성화되어 있도록 합니다.
         EnsureInventoryIconsActive();
     }
 
-    // 📢 시작 시 인벤토리 아이콘 활성화 함수
     void EnsureInventoryIconsActive()
     {
         if (inventoryGunIcon != null) inventoryGunIcon.SetActive(true);
         if (inventorySwordIcon != null) inventorySwordIcon.SetActive(true);
     }
 
-    // 로컬 회전 오프셋 적용 함수
     void ApplyModelRotation()
     {
-        if (gunModelInstance != null)
-        {
-            gunModelInstance.transform.localRotation = Quaternion.Euler(gunRotationOffset);
-        }
-        if (swordModelInstance != null)
-        {
-            swordModelInstance.transform.localRotation = Quaternion.Euler(swordRotationOffset);
-        }
+        if (gunModelInstance != null) gunModelInstance.transform.localRotation = Quaternion.Euler(gunRotationOffset);
+        if (swordModelInstance != null) swordModelInstance.transform.localRotation = Quaternion.Euler(swordRotationOffset);
     }
-
 
     void Update()
     {
-        // Z 키로 무기 전환 로직 (칼 <-> 총)
-        if (Input.GetKeyDown(KeyCode.Z))
+        // Z 키 무기 전환
+        if (Input.GetKeyDown(KeyCode.Z))
         {
             isMeleeMode = !isMeleeMode;
             UpdateWeaponUI();
             UpdateWeaponModel();
         }
 
-        // 📢 마우스 좌클릭 (0) - 공격 실행 조건 추가!
-        // 게임 시간이 멈춰있지 않을 때만 공격 가능
-        if (Time.timeScale > 0f && Input.GetMouseButtonDown(0))
+        // 마우스 좌클릭 공격 (게임 시간 정지 아닐 때)
+        if (Time.timeScale > 0f && Input.GetMouseButtonDown(0))
         {
             Attack();
         }
     }
 
-    // 무기 모델 활성화/비활성화 함수
     private void UpdateWeaponModel()
     {
         if (gunModelInstance == null && swordModelInstance == null) return;
-
-        if (isMeleeMode)
-        {
-            if (swordModelInstance != null) swordModelInstance.SetActive(true);
-            if (gunModelInstance != null) gunModelInstance.SetActive(false);
-        }
-        else
-        {
-            if (gunModelInstance != null) gunModelInstance.SetActive(true);
-            if (swordModelInstance != null) swordModelInstance.SetActive(false);
-        }
+        bool showSword = isMeleeMode;
+        if (swordModelInstance != null) swordModelInstance.SetActive(showSword);
+        if (gunModelInstance != null) gunModelInstance.SetActive(!showSword);
     }
 
-    // 무기 전환 및 쿨타임 상태를 반영하여 UI 업데이트
-    private void UpdateWeaponUI()
+    // 🔻 5. [수정] UI 업데이트 함수 수정 (총 쿨타임 반영)
+    private void UpdateWeaponUI()
     {
         if (weaponImageUI == null) return;
 
-        if (isMeleeMode)
-        {
+        if (isMeleeMode) // 칼 모드일 때
+        {
             weaponImageUI.sprite = canMeleeAttack ? swordReadySprite : swordCooldownSprite;
         }
-        else
-        {
-            weaponImageUI.sprite = gunSprite;
-        }
+        else // 총 모드일 때
+        {
+            weaponImageUI.sprite = canShootGun ? gunSprite : gunCooldownSprite; // 쿨타임 상태에 따라 스프라이트 변경
+        }
     }
 
-    // 📢 인벤토리가 열릴 때 호출될 함수 (수정됨!)
     public void UpdateInventoryWeaponIcons()
     {
-        // 📢 아이콘 연결 확인만 하고, 켜고 끄는 로직은 제거!
         if (inventoryGunIcon == null || inventorySwordIcon == null)
         {
-            Debug.LogWarning("인벤토리 무기 아이콘 중 일부 또는 전부가 연결되지 않았습니다.");
+            Debug.LogWarning("인벤토리 무기 아이콘이 연결되지 않았습니다.");
             return;
         }
+        inventoryGunIcon.SetActive(true); // 항상 활성화
+        inventorySwordIcon.SetActive(true); // 항상 활성화
+    }
 
-        // 📢 아이콘들이 항상 켜져 있도록 보장합니다.
-        inventoryGunIcon.SetActive(true);
-        inventorySwordIcon.SetActive(true);
-
-        // 📢 아래 켜고 끄는 로직 제거됨:
-        /*
-        if (isMeleeMode)
-        {
-            inventorySwordIcon.SetActive(true);
-            inventoryGunIcon.SetActive(false);
-        }
-        else
-        {
-            inventoryGunIcon.SetActive(true);
-            inventorySwordIcon.SetActive(false);
-        }
-        */
-    }
-
-    // ===========================================
-    // 통합 공격 로직 (좌클릭 시 호출)
-    // ===========================================
-    void Attack()
+    // ===========================================
+    // 통합 공격 로직 (좌클릭 시 호출)
+    // ===========================================
+    void Attack()
     {
-        if (isMeleeMode)
-        {
-            if (canMeleeAttack)
-            {
-                MeleeAttack();
-            }
-            else
-            {
-                //Debug.Log("칼 공격 쿨타임 중입니다.");
-            }
-        }
-        else
-        {
-            ShootGun();
-        }
+        if (isMeleeMode) // 칼 모드
+        {
+            if (canMeleeAttack) MeleeAttack();
+            // else Debug.Log("칼 쿨타임 중"); // 쿨타임 로그
+        }
+        else // 총 모드
+        {
+            // 🔻 6. [수정] 총 발사 가능 여부 확인
+            if (canShootGun) ShootGun();
+            // else Debug.Log("총 쿨타임 중"); // 쿨타임 로그
+        }
     }
 
-
-    // ===========================================
-    // 근접 공격 (Melee/Sword) 로직
-    // ===========================================
-    void MeleeAttack()
+    // ===========================================
+    // 근접 공격 (Melee/Sword) 로직
+    // ===========================================
+    void MeleeAttack()
     {
         if (playerController == null) return;
 
         canMeleeAttack = false;
-        StartCoroutine(MeleeCooldownCoroutine());
+        StartCoroutine(MeleeCooldownCoroutine()); // 쿨타임 시작 및 UI 업데이트
 
-        // 이펙트 생성 로직
-        if (swordEffectPrefab != null)
+        // 이펙트 생성
+        if (swordEffectPrefab != null)
         {
-            GameObject effectInstance = Instantiate(swordEffectPrefab, firePoint.position, firePoint.rotation);
-            Destroy(effectInstance, 2f);
+            Destroy(Instantiate(swordEffectPrefab, firePoint.position, firePoint.rotation), 2f);
         }
 
-        Vector3 origin = firePoint.position;
-
-        // Debug.Log("📢 칼 공격 시도! 위치: " + origin + ", 범위: " + meleeRange);
-
-        Collider[] hitColliders = Physics.OverlapSphere(origin, meleeRange);
-
-        // Debug.Log("📢 감지된 콜라이더 수: " + hitColliders.Length);
-
+        // 범위 내 IDamageable 찾아서 공격
+        Collider[] hitColliders = Physics.OverlapSphere(firePoint.position, meleeRange);
         foreach (var hitCollider in hitColliders)
         {
-            // Debug.Log("    - 감지된 오브젝트: " + hitCollider.name + ", 태그: " + hitCollider.tag);
-
-            // 🔥🔥 핵심 수정! 🔥🔥
-            // "Enemy" 태그 확인 제거! -> 모든 콜라이더에서 IDamageable을 찾습니다.
             IDamageable damageable = hitCollider.GetComponent<IDamageable>();
-
-            if (damageable != null)
-            {
-                // IDamageable이 있다면, 그게 적이든 구름 핵이든 TakeDamage 호출!
-                // CloudCore의 TakeDamage 함수 안에서 isAttackable을 체크할 것이므로 여기서 따로 확인할 필요 없음.
+            if (damageable != null && hitCollider.gameObject != this.gameObject) // 자기 자신 제외
+            {
                 damageable.TakeDamage(playerController.attackDamage);
-                // Debug.Log($"✅ 칼 공격 성공: {hitCollider.name}에게 {playerController.attackDamage} 피해를 입혔습니다.");
             }
-            // else: IDamageable이 없는 오브젝트는 무시 (벽, 바닥 등)
         }
     }
 
     IEnumerator MeleeCooldownCoroutine()
     {
-        UpdateWeaponUI();
-        yield return new WaitForSeconds(meleeCooldown);
-        canMeleeAttack = true;
-        UpdateWeaponUI();
-    }
+        UpdateWeaponUI(); // 쿨타임 시작 UI 표시
+        yield return new WaitForSeconds(meleeCooldown); // 0.5초 대기
+        canMeleeAttack = true; // 공격 가능
+        UpdateWeaponUI(); // 쿨타임 종료 UI 표시
+    }
 
 
-    // ===========================================
-    // 원거리 공격 (Projectile/Gun) 로직
-    // ===========================================
+    // ===========================================
+    // 원거리 공격 (Projectile/Gun) 로직
+    // ===========================================
 
-    void ShootGun()
+    // 🔻 7. [수정] 총 발사 함수 수정 (쿨타임 시작)
+    void ShootGun()
     {
-        if (playerController == null) return;
+        if (playerController == null || projectilePrefab == null || firePoint == null || cam == null) return;
 
-        Vector3 direction = cam.transform.forward;
-        GameObject proj = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
+        canShootGun = false; // 발사 불가 상태로 변경
+        StartCoroutine(GunCooldownCoroutine()); // 쿨타임 시작 및 UI 업데이트
+
+        Vector3 direction = cam.transform.forward; // 카메라 정면 방향
+        GameObject proj = Instantiate(projectilePrefab, firePoint.position, Quaternion.LookRotation(direction));
 
         Projectile projectileComponent = proj.GetComponent<Projectile>();
         if (projectileComponent != null)
         {
             projectileComponent.SetDamage(playerController.attackDamage);
-            // Debug.Log("총 공격: 투사체에 " + playerController.attackDamage + " 데미지를 설정했습니다."); // 로그 비활성화
         }
     }
 
-    // ===========================================
-    // 근접 공격 범위 시각화 (유니티 에디터 전용)
-    // ===========================================
+    // 🔻 8. [추가] 총 쿨타임 코루틴
+    IEnumerator GunCooldownCoroutine()
+    {
+        UpdateWeaponUI(); // 쿨타임 시작 UI 표시
+        yield return new WaitForSeconds(gunCooldown); // 1.5초 대기
+        canShootGun = true; // 발사 가능
+        UpdateWeaponUI(); // 쿨타임 종료 UI 표시
+    }
+
+
+    // ===========================================
+    // 근접 공격 범위 시각화 (유니티 에디터 전용)
+    // ===========================================
 #if UNITY_EDITOR
-    private void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
         if (firePoint == null) return;
-
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(firePoint.position, meleeRange);
     }
