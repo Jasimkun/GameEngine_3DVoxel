@@ -35,9 +35,10 @@ public class Teleport : MonoBehaviour, IDamageable
     public int attackDamage = 3;
     private float lastAttackTime;
 
-    // === 체력 설정 ===
+    // === 체력 및 경험치 설정 ===
     public int maxHP = 10;
     public int currentHP;
+    public int experienceValue = 5; // 처치 시 지급할 경험치
 
     // === 컴포넌트 ===
     private Transform player;
@@ -54,49 +55,37 @@ public class Teleport : MonoBehaviour, IDamageable
         lastTeleportTime = Time.time;
         currentHP = maxHP;
 
-        // 📢 HP 슬라이더 초기화 수정!
+        // HP 슬라이더 초기화
         if (hpSlider != null)
         {
-            hpSlider.maxValue = maxHP; // 최대값 설정
-            hpSlider.value = currentHP; // 현재값(실제값) 설정
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
         }
 
-        enemyRenderer = GetComponent<Renderer>();
+        // Renderer 초기화 (자식 포함, 필요시 색상 저장)
+        enemyRenderer = GetComponentInChildren<Renderer>(true);
+        if (enemyRenderer != null)
+        {
+            originalColor = enemyRenderer.material.color; // 필요하다면 유지
+        }
 
         // Rigidbody 설정
         enemyRigidbody = GetComponent<Rigidbody>();
-        if (enemyRigidbody == null)
-        {
-            enemyRigidbody = gameObject.AddComponent<Rigidbody>();
-        }
+        if (enemyRigidbody == null) { enemyRigidbody = gameObject.AddComponent<Rigidbody>(); }
         enemyRigidbody.isKinematic = false;
         enemyRigidbody.useGravity = false;
         enemyRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
 
-        if (enemyRenderer != null)
-        {
-            originalColor = enemyRenderer.material.color;
-        }
-
-        if (EnemyManager.Instance != null)
-        {
-            EnemyManager.Instance.RegisterEnemy();
-        }
+        // EnemyManager 등록
+        if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
 
         StartCoroutine(CheckForTeleport());
     }
 
-    // ... (Update 및 다른 함수들은 이전과 동일하게 유지) ...
-
     void Update()
     {
         if (player == null) return;
-
-        if (enemyRigidbody.useGravity)
-        {
-            return;
-        }
-
+        if (enemyRigidbody.useGravity) return;
         if (state == EnemyState.Teleporting) return;
 
         float dist = Vector3.Distance(player.position, transform.position);
@@ -104,32 +93,20 @@ public class Teleport : MonoBehaviour, IDamageable
         switch (state)
         {
             case EnemyState.Idle:
-                if (dist < traceRange)
-                    state = EnemyState.Trace;
+                if (dist < traceRange) state = EnemyState.Trace;
                 break;
-
             case EnemyState.Trace:
                 TryFallCheck();
-                if (dist < attackRange)
-                    state = EnemyState.Attack;
-                else if (dist > traceRange)
-                    state = EnemyState.Idle;
-                else
-                    TracePlayer();
+                if (dist < attackRange) state = EnemyState.Attack;
+                else if (dist > traceRange) state = EnemyState.Idle;
+                else TracePlayer();
                 break;
-
             case EnemyState.Attack:
                 TryFallCheck();
-                if (dist > attackRange)
-                    state = EnemyState.Trace;
-                else
-                {
-                    TracePlayer();
-                    AttackPlayer();
-                }
+                if (dist > attackRange) state = EnemyState.Trace;
+                else { TracePlayer(); AttackPlayer(); }
                 break;
-            case EnemyState.Teleporting:
-                break;
+            case EnemyState.Teleporting: break;
         }
     }
 
@@ -138,7 +115,6 @@ public class Teleport : MonoBehaviour, IDamageable
         while (true)
         {
             yield return new WaitForSeconds(teleportCooldown);
-
             if (player != null && state != EnemyState.Teleporting && currentHP > 0)
             {
                 TeleportToPlayerSide();
@@ -164,13 +140,7 @@ public class Teleport : MonoBehaviour, IDamageable
         {
             Vector3 randomCircle = Random.insideUnitCircle.normalized * teleportDistance;
             Vector3 potentialPosition = player.position + new Vector3(randomCircle.x, 0, randomCircle.y);
-
-            if (CheckGround(potentialPosition))
-            {
-                targetPosition = potentialPosition;
-                foundGround = true;
-                break;
-            }
+            if (CheckGround(potentialPosition)) { targetPosition = potentialPosition; foundGround = true; break; }
         }
 
         if (foundGround)
@@ -214,10 +184,7 @@ public class Teleport : MonoBehaviour, IDamageable
         RaycastHit hit;
         if (Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance))
         {
-            if (hit.collider.GetComponent<VoxelCollapse>() != null)
-            {
-                return true;
-            }
+            if (hit.collider.GetComponent<VoxelCollapse>() != null) { return true; }
         }
         return false;
     }
@@ -228,7 +195,6 @@ public class Teleport : MonoBehaviour, IDamageable
         if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance))
         {
             VoxelCollapse tileScript = hit.collider.GetComponent<VoxelCollapse>();
-
             if (tileScript != null)
             {
                 transform.position = new Vector3(transform.position.x, hit.point.y + groundOffset, transform.position.z);
@@ -236,19 +202,25 @@ public class Teleport : MonoBehaviour, IDamageable
         }
     }
 
-    // 데미지 받는 함수
+    // === 함수 정의 ===
+
     public void TakeDamage(int damage)
     {
+        if (currentHP <= 0) return;
+
         currentHP -= damage;
-        // HP 슬라이더 업데이트 (비율 대신 실제 값 사용!)
+
         if (hpSlider != null)
         {
-            // maxValue가 maxHP로 설정되었으므로 value에는 currentHP를 넣어야 함!
             hpSlider.value = currentHP;
         }
 
         if (currentHP <= 0)
         {
+            if (EnemyManager.Instance != null)
+            {
+                EnemyManager.Instance.EnemyDefeated(experienceValue);
+            }
             Die();
         }
     }
@@ -256,12 +228,10 @@ public class Teleport : MonoBehaviour, IDamageable
     void Die()
     {
         StopAllCoroutines();
-
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.UnregisterEnemy();
         }
-
         Destroy(gameObject);
     }
 
@@ -299,7 +269,6 @@ public class Teleport : MonoBehaviour, IDamageable
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             lastAttackTime = Time.time;
-
             PlayerController playerScript = player.GetComponent<PlayerController>();
             if (playerScript != null)
             {
@@ -308,7 +277,6 @@ public class Teleport : MonoBehaviour, IDamageable
                     GameObject effect = Instantiate(attackEffectPrefab, transform.position, Quaternion.identity);
                     Destroy(effect, 1.5f);
                 }
-
                 playerScript.TakeDamage(attackDamage);
             }
         }
@@ -325,8 +293,7 @@ public class Teleport : MonoBehaviour, IDamageable
         Projectile projectile = other.GetComponent<Projectile>();
         if (projectile != null)
         {
-            // Projectile.cs에 GetDamage() 함수 필요 (임시로 1 사용)
-            TakeDamage(1);
+            TakeDamage(1); // 임시 데미지
             Destroy(other.gameObject);
         }
     }

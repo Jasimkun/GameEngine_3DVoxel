@@ -328,9 +328,10 @@ MonoBehaviour:
   groundCheckDistance: 1
   groundOffset: 0.1
   attackCooldown: 2
-  attackDamage: 2
+  attackDamage: 5
   maxHP: 15
   currentHP: 0
+  experienceValue: 5
   hpSlider: {fileID: 2500882787318922813}
 --- !u!1 &5915473856082709714
 GameObject:

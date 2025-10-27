@@ -3,27 +3,28 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// IDamageable 인터페이스 구현
 public class Fire : MonoBehaviour, IDamageable
 {
-    // === 상태 열거형 (TNT와 동일하게 유지) ===
+    // === 상태 열거형 ===
     public enum EnemyState { Idle, Trace, Attack, RunAway }
     public EnemyState state = EnemyState.Idle;
 
-    // === 이동 및 추적 설정 (TNT와 동일하게 수정) ===
-    public float movespeed = 2f;    // TNT: 2f
-    public float traceRange = 15f;  // TNT: 15f
-    public float attackRange = 6f;   // TNT: 6f (이 거리가 추적을 멈추는 거리입니다.)
+    // === 이동 및 추적 설정 ===
+    public float movespeed = 2f;
+    public float traceRange = 15f;
+    public float attackRange = 6f;
 
-    // === 공격 설정 (FireProjectile 로직은 유지, 쿨타임만 5초로 유지) ===
-    public float attackCooldown = 5.0f; // 5초에 한 번 공격
+    // === 공격 설정 ===
+    public float attackCooldown = 5.0f;
     public GameObject fireProjectilePrefab;
     public Transform firePoint;
-
     private float lastAttackTime;
 
-    // === 체력 설정 (TNT와 동일하게 수정) ===
-    public int maxHP = 10;          // TNT: 10
+    // === 체력 및 경험치 설정 ===
+    public int maxHP = 10;
     public int currentHP;
+    public int experienceValue = 5; // 처치 시 지급할 경험치
 
     // === 컴포넌트 ===
     private Transform player;
@@ -39,38 +40,33 @@ public class Fire : MonoBehaviour, IDamageable
         lastAttackTime = -attackCooldown;
         currentHP = maxHP;
 
+        // HP 슬라이더 초기화
         if (hpSlider != null)
         {
-            hpSlider.value = (float)currentHP / maxHP;
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
         }
 
+        // Renderer 초기화 (필요시 색상 저장)
         enemyRenderer = GetComponent<Renderer>();
-
-        enemyRigidbody = GetComponent<Rigidbody>();
-        if (enemyRigidbody == null)
+        if (enemyRenderer != null)
         {
-            enemyRigidbody = gameObject.AddComponent<Rigidbody>();
+            originalColor = enemyRenderer.material.color; // 필요하다면 유지
         }
-        // 비행 유닛: Kinematic으로 고정하여 3D 이동을 제어합니다. (유지)
+
+        // Rigidbody 설정
+        enemyRigidbody = GetComponent<Rigidbody>();
+        if (enemyRigidbody == null) { enemyRigidbody = gameObject.AddComponent<Rigidbody>(); }
         enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
-        if (enemyRenderer != null)
-        {
-            originalColor = enemyRenderer.material.color;
-        }
-
-        
-        if (EnemyManager.Instance != null)
-        {
-            EnemyManager.Instance.RegisterEnemy();
-        }
+        // EnemyManager 등록
+        if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
     }
 
     void Update()
     {
         if (player == null) return;
-
         if (enemyRigidbody != null && !enemyRigidbody.isKinematic) return;
 
         float dist = Vector3.Distance(player.position, transform.position);
@@ -78,44 +74,58 @@ public class Fire : MonoBehaviour, IDamageable
         switch (state)
         {
             case EnemyState.Idle:
-                // TNT와 동일한 로직
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist < traceRange)
-                    state = EnemyState.Trace;
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist < traceRange) state = EnemyState.Trace;
                 break;
-
             case EnemyState.Trace:
-                // TNT와 동일한 로직
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist < attackRange)
-                    state = EnemyState.Attack;
-                else
-                    TracePlayer();
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist < attackRange) state = EnemyState.Attack;
+                else TracePlayer();
                 break;
-
             case EnemyState.Attack:
-                // TNT와 동일한 로직
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist > attackRange)
-                    state = EnemyState.Trace;
-                else
-                    AttackPlayer();
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist > attackRange) state = EnemyState.Trace;
+                else AttackPlayer();
                 break;
-
             case EnemyState.RunAway:
                 RunAwayFromPlayer();
-                // TNT와 동일한 로직
                 float runawayDistance = 15f;
-                if (Vector3.Distance(player.position, transform.position) > runawayDistance)
-                    state = EnemyState.Idle;
+                if (Vector3.Distance(player.position, transform.position) > runawayDistance) state = EnemyState.Idle;
                 break;
         }
     }
 
-    // === 함수 정의 (TNT와 동일한 로직) ===
+    // === 함수 정의 ===
+
+    public void TakeDamage(int damage)
+    {
+        if (currentHP <= 0) return;
+
+        currentHP -= damage;
+
+        if (hpSlider != null)
+        {
+            hpSlider.value = currentHP;
+        }
+
+        if (currentHP <= 0)
+        {
+            if (EnemyManager.Instance != null)
+            {
+                EnemyManager.Instance.EnemyDefeated(experienceValue);
+            }
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        if (EnemyManager.Instance != null)
+        {
+            EnemyManager.Instance.UnregisterEnemy();
+        }
+        Destroy(gameObject);
+    }
 
     void TracePlayer()
     {
@@ -127,7 +137,6 @@ public class Fire : MonoBehaviour, IDamageable
 
     void AttackPlayer()
     {
-        // 쿨타임만 5초로 유지하고 발사 함수 호출
         if (Time.time >= lastAttackTime + attackCooldown)
         {
             lastAttackTime = Time.time;
@@ -140,12 +149,9 @@ public class Fire : MonoBehaviour, IDamageable
     {
         Vector3 traceDirection = (player.position - transform.position).normalized;
         Vector3 runDirection = -traceDirection;
-
         float runSpeed = movespeed * 2f;
-
         Vector3 movement = runDirection * runSpeed * Time.deltaTime;
         transform.position += movement;
-
         transform.rotation = Quaternion.LookRotation(runDirection);
     }
 
@@ -154,8 +160,6 @@ public class Fire : MonoBehaviour, IDamageable
         if (fireProjectilePrefab != null && firePoint != null)
         {
             transform.LookAt(player.position);
-
-            // FireProjectile을 생성하고 방향 설정
             GameObject proj = Instantiate(fireProjectilePrefab, firePoint.position, firePoint.rotation);
             FireProjectile fp = proj.GetComponent<FireProjectile>();
             if (fp != null)
@@ -166,38 +170,18 @@ public class Fire : MonoBehaviour, IDamageable
         }
     }
 
-    public void TakeDamage(int damage)
-    {
-        currentHP -= damage;
-        if (hpSlider != null)
-        {
-            hpSlider.value = (float)currentHP / maxHP;
-        }
-
-        if (currentHP <= 0)
-        {
-            Die();
-        }
-    }
-
-    void Die()
-    {
-        EnemyManager.Instance.UnregisterEnemy();
-        Destroy(gameObject);
-    }
-
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("DeadZone"))
         {
-            //Debug.Log("FireEnemy가 DeadZone에 진입! 사망 처리합니다.");
             Die();
             return;
         }
 
-        if (other.GetComponent<Projectile>() != null)
+        Projectile projectile = other.GetComponent<Projectile>();
+        if (projectile != null)
         {
-            TakeDamage(1);
+            TakeDamage(1); // 임시 데미지
             Destroy(other.gameObject);
         }
     }

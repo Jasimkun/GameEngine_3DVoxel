@@ -384,11 +384,12 @@ public class PlayerController : MonoBehaviour
         {
             currentLevel -= hpUpgradeLevelCost;
             maxHP += HP_UPGRADE_AMOUNT;
-            currentHP = maxHP;
-            hpUpgradeLevelCost++;
-            if (hpSlider != null) { hpSlider.maxValue = maxHP; hpSlider.value = currentHP; }
+            // currentHP = maxHP; // 👈 이 라인을 삭제하거나 주석 처리합니다.
+            hpUpgradeLevelCost++;
+            // hpSlider.value는 이미 currentHP 값이므로, maxValue만 갱신해주면 됩니다.
+            if (hpSlider != null) { hpSlider.maxValue = maxHP; hpSlider.value = currentHP; }
             UpdateEXPSlider(); // 레벨 사용 후 슬라이더 갱신
-            if (inventoryShopManager != null) inventoryShopManager.UpdateStats(this);
+            if (inventoryShopManager != null) inventoryShopManager.UpdateStats(this);
             return true;
         }
         return false;

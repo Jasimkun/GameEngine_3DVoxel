@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// IDamageable 인터페이스 구현
 public class TNT : MonoBehaviour, IDamageable
 {
     // === 상태 열거형 ===
@@ -18,12 +19,12 @@ public class TNT : MonoBehaviour, IDamageable
     public float attackCooldown = 1.5f;
     public GameObject projectilePrefab;
     public Transform firePoint;
-
     private float lastAttackTime;
 
-    // === 체력 설정 ===
+    // === 체력 및 경험치 설정 ===
     public int maxHP = 10;
     public int currentHP;
+    public int experienceValue = 5; // 처치 시 지급할 경험치
 
     // === 컴포넌트 ===
     private Transform player;
@@ -39,38 +40,33 @@ public class TNT : MonoBehaviour, IDamageable
         lastAttackTime = -attackCooldown;
         currentHP = maxHP;
 
+        // HP 슬라이더 초기화
         if (hpSlider != null)
         {
-            hpSlider.value = (float)currentHP / maxHP;
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
         }
 
+        // Renderer 초기화 (필요시 색상 저장)
         enemyRenderer = GetComponent<Renderer>();
-
-        enemyRigidbody = GetComponent<Rigidbody>();
-        if (enemyRigidbody == null)
+        if (enemyRenderer != null)
         {
-            enemyRigidbody = gameObject.AddComponent<Rigidbody>();
+            originalColor = enemyRenderer.material.color; // 필요하다면 유지
         }
-        // 비행 유닛: Kinematic으로 고정하여 3D 이동을 제어합니다.
+
+        // Rigidbody 설정
+        enemyRigidbody = GetComponent<Rigidbody>();
+        if (enemyRigidbody == null) { enemyRigidbody = gameObject.AddComponent<Rigidbody>(); }
         enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
-        if (enemyRenderer != null)
-        {
-            originalColor = enemyRenderer.material.color;
-        }
-
-        // EnemyManager에 자신을 등록
-        if (EnemyManager.Instance != null)
-        {
-            EnemyManager.Instance.RegisterEnemy();
-        }
+        // EnemyManager 등록
+        if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
     }
 
     void Update()
     {
         if (player == null) return;
-
         if (enemyRigidbody != null && !enemyRigidbody.isKinematic) return;
 
         float dist = Vector3.Distance(player.position, transform.position);
@@ -78,35 +74,23 @@ public class TNT : MonoBehaviour, IDamageable
         switch (state)
         {
             case EnemyState.Idle:
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist < traceRange)
-                    state = EnemyState.Trace;
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist < traceRange) state = EnemyState.Trace;
                 break;
-
             case EnemyState.Trace:
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist < attackRange)
-                    state = EnemyState.Attack;
-                else
-                    TracePlayer();
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist < attackRange) state = EnemyState.Attack;
+                else TracePlayer();
                 break;
-
             case EnemyState.Attack:
-                if (currentHP <= maxHP * 0.2f)
-                    state = EnemyState.RunAway;
-                else if (dist > attackRange)
-                    state = EnemyState.Trace;
-                else
-                    AttackPlayer();
+                if (currentHP <= maxHP * 0.2f) state = EnemyState.RunAway;
+                else if (dist > attackRange) state = EnemyState.Trace;
+                else AttackPlayer();
                 break;
-
             case EnemyState.RunAway:
                 RunAwayFromPlayer();
                 float runawayDistance = 15f;
-                if (Vector3.Distance(player.position, transform.position) > runawayDistance)
-                    state = EnemyState.Idle;
+                if (Vector3.Distance(player.position, transform.position) > runawayDistance) state = EnemyState.Idle;
                 break;
         }
     }
@@ -115,36 +99,48 @@ public class TNT : MonoBehaviour, IDamageable
 
     public void TakeDamage(int damage)
     {
+        if (currentHP <= 0) return; // 이미 죽었으면 리턴
+
         currentHP -= damage;
-        hpSlider.value = (float)currentHP / maxHP;
+
+        // HP 슬라이더 업데이트
+        if (hpSlider != null)
+        {
+            hpSlider.value = currentHP;
+        }
 
         if (currentHP <= 0)
         {
-            Die();
+            // 죽기 전에 EnemyManager를 통해 경험치 지급 요청
+            if (EnemyManager.Instance != null)
+            {
+                EnemyManager.Instance.EnemyDefeated(experienceValue);
+            }
+            Die(); // Die 함수 호출
         }
     }
 
     void Die()
     {
+        // EnemyManager에 사망 보고
         if (EnemyManager.Instance != null)
         {
             EnemyManager.Instance.UnregisterEnemy();
         }
+        // 오브젝트 파괴
         Destroy(gameObject);
     }
 
-    // 💡 TracePlayer 함수: 3D 이동으로 변경
+    // TracePlayer 함수: 3D 이동
     void TracePlayer()
     {
         Vector3 dir = (player.position - transform.position).normalized;
-
         Vector3 movement = dir * movespeed * Time.deltaTime;
         transform.position += movement;
-
         transform.LookAt(player.position);
     }
 
-    // 💡 AttackPlayer 함수 수정: 3D 조준 및 공격
+    // AttackPlayer 함수: 3D 조준 및 공격
     void AttackPlayer()
     {
         if (Time.time >= lastAttackTime + attackCooldown)
@@ -152,21 +148,17 @@ public class TNT : MonoBehaviour, IDamageable
             lastAttackTime = Time.time;
             ShootProjectile();
         }
-
         transform.LookAt(player.position);
     }
 
-    // 💡 RunAwayFromPlayer 함수 수정: 3D 도망으로 변경
+    // RunAwayFromPlayer 함수: 3D 도망
     void RunAwayFromPlayer()
     {
         Vector3 traceDirection = (player.position - transform.position).normalized;
         Vector3 runDirection = -traceDirection;
-
         float runSpeed = movespeed * 2f;
-
         Vector3 movement = runDirection * runSpeed * Time.deltaTime;
         transform.position += movement;
-
         transform.rotation = Quaternion.LookRotation(runDirection);
     }
 
@@ -175,7 +167,6 @@ public class TNT : MonoBehaviour, IDamageable
         if (projectilePrefab != null && firePoint != null)
         {
             transform.LookAt(player.position);
-
             GameObject proj = Instantiate(projectilePrefab, firePoint.position, firePoint.rotation);
 
             EnemyProjectile ep = proj.GetComponent<EnemyProjectile>();
@@ -187,21 +178,22 @@ public class TNT : MonoBehaviour, IDamageable
         }
     }
 
-    // 💡 DeadZone에 닿았는지 확인하는 Trigger 함수
+    // DeadZone 및 투사체 충돌 처리
     private void OnTriggerEnter(Collider other)
     {
-        // 1. DeadZone에 닿았는지 확인
+        // DeadZone 충돌 처리
         if (other.CompareTag("DeadZone"))
         {
-            //Debug.Log("적이 DeadZone에 진입! 사망 처리합니다.");
+            // 경험치 없이 Die()만 호출
             Die();
             return;
         }
 
-        // 💡 2. 투사체 충돌 감지 및 피해 적용 (Boom 로직 제거됨)
-        if (other.GetComponent<Projectile>() != null)
+        // 플레이어 투사체 충돌 처리 (TakeDamage 호출)
+        Projectile projectile = other.GetComponent<Projectile>();
+        if (projectile != null)
         {
-            TakeDamage(1);
+            TakeDamage(1); // 임시 데미지
             Destroy(other.gameObject);
         }
     }
