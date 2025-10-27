@@ -81,7 +81,7 @@ public class FireProjectile : MonoBehaviour
             if (tileScript != null)
             {
                 // 타일 즉시 붕괴 시작
-                tileScript.collapseDelay = 0.001f;
+                tileScript.SetTemporaryDelay(0.001f);
                 if (!tileScript.IsCollapseStarted)
                 {
                     tileScript.StartDelayedCollapse();

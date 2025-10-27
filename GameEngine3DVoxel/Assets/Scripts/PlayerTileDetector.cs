@@ -54,7 +54,7 @@ public class PlayerTileDetector : MonoBehaviour
             if (tileScript != null)
             {
                 // 1. 타일의 붕괴 시간(collapseDelay)을 새로운 시간(20초)으로 변경합니다.
-                tileScript.collapseDelay = newDelay;
+                tileScript.SetTemporaryDelay(newDelay);
 
                 // 2. 만약 붕괴가 이미 시작되었다면, 그 카운트다운을 취소합니다.
                 if (tileScript.IsCollapseStarted)

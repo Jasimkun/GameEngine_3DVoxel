@@ -290,7 +290,7 @@ public class Enemy : MonoBehaviour, IDamageable
             if (tileScript != null)
             {
                 if (tileScript.IsCollapseStarted) tileScript.CancelCollapse();
-                tileScript.collapseDelay = 0.001f;
+                tileScript.SetTemporaryDelay(0.001f);
                 tileScript.StartDelayedCollapse();
             }
         }

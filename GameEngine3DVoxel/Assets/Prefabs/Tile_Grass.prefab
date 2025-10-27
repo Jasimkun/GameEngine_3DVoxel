@@ -40,6 +40,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 821991445173688036}
     m_Modifications:
+    - target: {fileID: 331931703693067214, guid: 2b72fbc1e9430a34e8a6259c9f872c5c,
+        type: 3}
+      propertyPath: minCollapseDelay
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2654467531834020990, guid: 2b72fbc1e9430a34e8a6259c9f872c5c,
         type: 3}
       propertyPath: m_LocalPosition.x

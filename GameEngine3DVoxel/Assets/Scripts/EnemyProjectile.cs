@@ -68,7 +68,7 @@ public class EnemyProjectile : MonoBehaviour
             if (tileScript != null)
             {
                 // 타일 붕괴 시작 (즉시 붕괴)
-                tileScript.collapseDelay = 0.001f;
+                tileScript.SetTemporaryDelay(0.001f);
 
                 // 이미 붕괴 중이면 취소 후 재시작 방지 (선택 사항)
                 if (!tileScript.IsCollapseStarted)
