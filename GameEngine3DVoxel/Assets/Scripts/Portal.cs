@@ -1,35 +1,45 @@
-using UnityEngine;
-using UnityEngine.SceneManagement; // ¾À °ü¸®¸¦ À§ÇØ ÇÊ¼ö!
+ï»¿using UnityEngine;
+using UnityEngine.SceneManagement; // ì”¬ ê´€ë¦¬ë¥¼ ìœ„í•´ í•„ìˆ˜!
 
 public class Portal : MonoBehaviour
 {
-    // 1. Inspector¿¡¼­ "Level_2" (´ÙÀ½ ¾À ÀÌ¸§)¸¦ Á÷Á¢ ÀÔ·ÂÇØÁİ´Ï´Ù.
-    public string nextSceneName;
+    // ğŸ”» [ì‚­ì œ] Inspectorì—ì„œ ì„¤ì •í•˜ë˜ ë³€ìˆ˜ ì œê±°
+    // public string nextSceneName; 
 
-    // 2. ÇÃ·¹ÀÌ¾î°¡ ´ê¾Ò´ÂÁö È®ÀÎ (Collider ÇÊ¿ä)
+    // í”Œë ˆì´ì–´ê°€ ë‹¿ì•˜ëŠ”ì§€ í™•ì¸ (Collider í•„ìš”, Is Trigger ì²´í¬ í•„ìˆ˜)
     private void OnTriggerEnter(Collider other)
     {
-        // 3. ´êÀº ¿ÀºêÁ§Æ®°¡ "Player" ÅÂ±×¸¦ °¡Á³´ÂÁö È®ÀÎ
+        // ë‹¿ì€ ì˜¤ë¸Œì íŠ¸ê°€ "Player" íƒœê·¸ë¥¼ ê°€ì¡ŒëŠ”ì§€ í™•ì¸
         if (other.CompareTag("Player"))
         {
-            // 4. ¾À ÀÌ¸§ÀÌ ºñ¾îÀÖÁö ¾ÊÀºÁö È®ÀÎ
-            if (string.IsNullOrEmpty(nextSceneName))
+            // GameManagerê°€ ì¡´ì¬í•˜ëŠ”ì§€ í™•ì¸
+            if (GameManager.Instance == null)
             {
-                Debug.LogError("Portal¿¡ 'Next Scene Name'ÀÌ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù!");
+                Debug.LogError("GameManagerë¥¼ ì°¾ì„ ìˆ˜ ì—†ìŠµë‹ˆë‹¤! ë ˆë²¨ì„ ì§„í–‰í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤.");
                 return;
             }
 
-            // 5. GameManager¸¦ »ç¿ëÇÏ¿© ´ÙÀ½ ·¹º§·Î ÀÌµ¿ (·¹º§ + 1)
-            if (GameManager.Instance != null)
+            // ğŸ”» [ìˆ˜ì •] GameManagerì—ì„œ í˜„ì¬ ë ˆë²¨ ê°€ì ¸ì˜¤ê¸°
+            int currentLevel = GameManager.Instance.currentLevel;
+            int nextLevelNumber = currentLevel + 1;
+
+            // ğŸ”» [ìˆ˜ì •] ë‹¤ìŒ ì”¬ ì´ë¦„ ìë™ ìƒì„± (ì˜ˆ: "Level_2", "Level_3")
+            string sceneToLoad = "Level_" + nextLevelNumber;
+
+
+            //ë§Œì•½ Level 5ê°€ ë§ˆì§€ë§‰ì´ë¼ë©´, ë‹¤ìŒ ì”¬ ëŒ€ì‹  ì—”ë”© ì”¬ì„ ë¡œë“œí•˜ê±°ë‚˜ ê²Œì„ í´ë¦¬ì–´ ì²˜ë¦¬
+             if (nextLevelNumber > 5) // ì˜ˆ: ì´ 5 ë ˆë²¨ê¹Œì§€ ìˆì„ ê²½ìš°
             {
-                GameManager.Instance.LoadNextLevel(nextSceneName);
+                Debug.Log("ê²Œì„ í´ë¦¬ì–´!");
+                SceneManager.LoadScene("EndingScene"); // ì—”ë”© ì”¬ ë¡œë“œ
+                // ë˜ëŠ” ë‹¤ë¥¸ ê²Œì„ í´ë¦¬ì–´ ë¡œì§ ì‹¤í–‰
+                return; // ì•„ë˜ LoadNextLevel ì‹¤í–‰ ì•ˆ í•¨
             }
-            else
-            {
-                // GameManager°¡ ¾øÀ» °æ¿ì (Å×½ºÆ®¿ë)
-                Debug.LogWarning("GameManager¸¦ Ã£À» ¼ö ¾ø½À´Ï´Ù! ¾À¸¸ ·ÎµåÇÕ´Ï´Ù.");
-                SceneManager.LoadScene(nextSceneName);
-            }
+
+           Debug.Log("í¬íƒˆ í™œì„±í™”! ë‹¤ìŒ ë ˆë²¨: " + sceneToLoad);
+
+            // ğŸ”» [ìˆ˜ì •] GameManagerë¥¼ ì‚¬ìš©í•˜ì—¬ 'ê³„ì‚°ëœ ì´ë¦„'ì˜ ë‹¤ìŒ ë ˆë²¨ë¡œ ì´ë™
+            GameManager.Instance.LoadNextLevel(sceneToLoad);
         }
     }
 }

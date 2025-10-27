@@ -1,4 +1,4 @@
-﻿using System.Collections; // 👈 IEnumerator를 위한 네임스페이스
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -16,9 +16,10 @@ public class Dash : MonoBehaviour, IDamageable
     public float chargeRange = 2f;
     public float chargeSpeed = 10f;
 
-    // 충돌 설정
+    // === 충돌 설정 ===
     public float pushForce = 5f;
-    public int contactDamage = 5;
+    // 🔻 [수정] 기본 데미지 (Inspector에서 설정)
+    public int baseContactDamage = 5;
     public float pushCooldown = 3f;
     private float lastPushTime;
 
@@ -31,37 +32,64 @@ public class Dash : MonoBehaviour, IDamageable
     public float groundOffset = 0.1f;
 
     // === 체력 및 경험치 설정 ===
-    public int maxHP = 10;
+    // 🔻 [수정] 기본 체력 (Inspector에서 설정)
+    public int baseMaxHP = 10;
     public int currentHP;
     public int experienceValue = 5; // 처치 시 지급할 경험치
+
+    // 🔻 [추가] 레벨에 따라 계산된 최종 스탯
+    private int calculatedMaxHP;
+    private int calculatedDamage;
 
     // === 컴포넌트 및 상태 변수 ===
     public Slider hpSlider;
     private Transform player;
-    private Renderer enemyRenderer; // 돌진 시 색상 변경용
-    private Color originalColor;   // 돌진 시 색상 변경용
-    private Rigidbody enemyRigidbody;
+    private Renderer enemyRenderer;
+    private Color originalColor;
+    private Rigidbody enemyRigidbody;
+    private Coroutine blinkCoroutine;
 
-    private Coroutine blinkCoroutine; // 👈 깜빡임 코루틴 변수
 
-
-    void Start()
+    void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
-        currentHP = maxHP;
 
-        // HP 슬라이더 초기화
-        if (hpSlider != null)
+        // 🔻 [수정] GameManager에서 현재 레벨을 가져와 스탯 계산
+        int level = 1; // 기본 레벨
+        if (GameManager.Instance != null)
         {
-            hpSlider.maxValue = maxHP;
-            hpSlider.value = currentHP;
+            level = GameManager.Instance.currentLevel;
+
+            // 레벨에 맞춰 체력과 데미지 계산
+            calculatedMaxHP = baseMaxHP + (level - 1) * GameManager.Instance.hpBonusPerLevel;
+            calculatedDamage = baseContactDamage + (level - 1) * GameManager.Instance.damageBonusPerLevel;
+        }
+        else
+        {
+            // GameManager가 없을 경우(테스트 씬 등) 기본 스탯으로
+            calculatedMaxHP = baseMaxHP;
+            calculatedDamage = baseContactDamage;
         }
 
-        // Renderer 및 색상 초기화 (돌진 시 색상 변경용)
+        // 계산된 체력으로 초기화
+        currentHP = calculatedMaxHP;
+
+        // HP 슬라이더 초기화
+        if (hpSlider != null)
+        {
+            hpSlider.maxValue = calculatedMaxHP; // [수정]
+            hpSlider.value = currentHP;
+        }
+
+        // [수정] Renderer 자식 포함 검색
         enemyRenderer = GetComponentInChildren<Renderer>();
         if (enemyRenderer != null)
         {
             originalColor = enemyRenderer.material.color;
+        }
+        else
+        {
+            Debug.LogWarning("Dash 몬스터가 Renderer를 찾지 못했습니다!", this.gameObject);
         }
 
         // Rigidbody 설정
@@ -255,7 +283,9 @@ public class Dash : MonoBehaviour, IDamageable
                 lastPushTime = Time.time;
 
                 PlayerController playerScript = hit.gameObject.GetComponent<PlayerController>();
-                if (playerScript != null) { playerScript.TakeDamage(contactDamage); }
+
+                // 🔻 [수정] 기본 데미지(contactDamage) 대신 계산된 데미지(calculatedDamage) 사용
+                if (playerScript != null) { playerScript.TakeDamage(calculatedDamage); }
 
                 Rigidbody playerRb = hit.gameObject.GetComponent<Rigidbody>();
                 if (playerRb != null)
@@ -266,12 +296,7 @@ public class Dash : MonoBehaviour, IDamageable
 
                 state = EnemyState.Wait;
                 waitEndTime = Time.time + waitDuration;
-
-                // 🔻 색상 변경 로직 주석 처리 🔻
-                /*
-                if (enemyRenderer != null) { enemyRenderer.material.color = originalColor; }
-                */
-            }
+            }
         }
     }
 
