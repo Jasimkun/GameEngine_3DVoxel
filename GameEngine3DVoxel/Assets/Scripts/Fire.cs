@@ -6,28 +6,28 @@ using UnityEngine.UI;
 // IDamageable 인터페이스 구현
 public class Fire : MonoBehaviour, IDamageable
 {
-    // === 상태 열거형 ===
-    public enum EnemyState { Idle, Trace, Attack, RunAway }
+    // === 상태 열거형 ===
+    public enum EnemyState { Idle, Trace, Attack, RunAway }
     public EnemyState state = EnemyState.Idle;
 
-    // === 이동 및 추적 설정 ===
-    public float movespeed = 2f;
+    // === 이동 및 추적 설정 ===
+    public float movespeed = 2f;
     public float traceRange = 15f;
     public float attackRange = 6f;
 
-    // === 공격 설정 ===
-    public float attackCooldown = 5.0f;
+    // === 공격 설정 ===
+    public float attackCooldown = 5.0f;
     public GameObject fireProjectilePrefab;
     public Transform firePoint;
     private float lastAttackTime;
 
-    // === 체력 및 경험치 설정 ===
-    public int maxHP = 10;
+    // === 체력 및 경험치 설정 ===
+    public int maxHP = 10;
     public int currentHP;
     public int experienceValue = 5; // 처치 시 지급할 경험치
 
-    // === 컴포넌트 ===
-    private Transform player;
+    // === 컴포넌트 ===
+    private Transform player;
     public Slider hpSlider;
     private Renderer enemyRenderer;
     private Color originalColor;
@@ -42,28 +42,32 @@ public class Fire : MonoBehaviour, IDamageable
         lastAttackTime = -attackCooldown;
         currentHP = maxHP;
 
-        // HP 슬라이더 초기화
-        if (hpSlider != null)
+        // HP 슬라이더 초기화
+        if (hpSlider != null)
         {
             hpSlider.maxValue = maxHP;
             hpSlider.value = currentHP;
         }
 
-        // Renderer 초기화 (필요시 색상 저장)
-        enemyRenderer = GetComponent<Renderer>();
+        // 🔻 1. [수정] InChildren을 추가하여 자식 오브젝트까지 검색
+        enemyRenderer = GetComponentInChildren<Renderer>();
         if (enemyRenderer != null)
         {
-            originalColor = enemyRenderer.material.color; // 필요하다면 유지
+            originalColor = enemyRenderer.material.color;
+        }
+        else
+        {
+            Debug.LogWarning("Fire 몬스터가 Renderer를 찾지 못했습니다!", this.gameObject);
         }
 
-        // Rigidbody 설정
-        enemyRigidbody = GetComponent<Rigidbody>();
+        // Rigidbody 설정
+        enemyRigidbody = GetComponent<Rigidbody>();
         if (enemyRigidbody == null) { enemyRigidbody = gameObject.AddComponent<Rigidbody>(); }
         enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
 
-        // EnemyManager 등록
-        if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
+        // EnemyManager 등록
+        if (EnemyManager.Instance != null) { EnemyManager.Instance.RegisterEnemy(); }
     }
 
     void Update()
@@ -97,15 +101,18 @@ public class Fire : MonoBehaviour, IDamageable
         }
     }
 
-    // === 함수 정의 ===
+    // === 함수 정의 ===
 
-    public void TakeDamage(int damage)
+    public void TakeDamage(int damage)
     {
         if (currentHP <= 0) return;
 
-        // 👈 2. 피격 시 코루틴 호출 (이 3줄을 추가하세요)
+        // 피격 시 코루틴 호출
         if (blinkCoroutine != null) StopCoroutine(blinkCoroutine);
         blinkCoroutine = StartCoroutine(BlinkEffect());
+
+        // 🔻 2. [추가] 🚨 체력 깎는 코드가 빠져있었습니다! 🚨
+        currentHP -= damage;
 
         if (hpSlider != null)
         {
@@ -129,14 +136,14 @@ public class Fire : MonoBehaviour, IDamageable
 
         float blinkDuration = 0.1f;
 
-        // 빨간색으로 변경
-        enemyRenderer.material.color = Color.red;
+        // 빨간색으로 변경
+        enemyRenderer.material.color = Color.red;
 
         // 0.1초 대기
         yield return new WaitForSeconds(blinkDuration);
 
-        // 원래 색상(originalColor)으로 복구
-        enemyRenderer.material.color = originalColor;
+        // 원래 색상(originalColor)으로 복구
+        enemyRenderer.material.color = originalColor;
 
         // 코루틴 참조 제거
         blinkCoroutine = null;
@@ -206,7 +213,7 @@ public class Fire : MonoBehaviour, IDamageable
         if (projectile != null)
         {
             TakeDamage(1); // 임시 데미지
-            Destroy(other.gameObject);
+            Destroy(other.gameObject);
         }
     }
 }

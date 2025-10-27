@@ -156,30 +156,22 @@ public class Enemy : MonoBehaviour, IDamageable
 
     private IEnumerator BlinkEffect()
     {
+        // enemyRenderer는 Start()에서 이미 찾았으므로 null 체크만 합니다.
         if (enemyRenderer == null) yield break;
 
-        float blinkDuration = 0.1f;
+        float blinkDuration = 0.1f; // 빨간색으로 유지되는 시간
 
-        // 1. 피격 시 무조건 빨간색
+        // 빨간색으로 변경
         enemyRenderer.material.color = Color.red;
 
-        // 2. 0.1초 대기
-        yield return new WaitForSeconds(blinkDuration);
+        // 짧은 대기
+        yield return new WaitForSeconds(blinkDuration);
 
-        // 🔻 4. [수정] 현재 상태에 맞는 색으로 복구
-        if (state == EnemyState.Suicide)
-        {
-            // 자폭 중이었다면 경고색으로 복구
-            enemyRenderer.material.color = warningColor;
-        }
-        else
-        {
-            // 다른 상태면 원래 색상으로 복구
-            enemyRenderer.material.color = originalColor;
-        }
+        // 원래 색상(originalColor)으로 복구
+        enemyRenderer.material.color = originalColor;
 
-        // 코루틴 참조 제거
-        blinkCoroutine = null;
+        // 코루틴 참조 제거
+        blinkCoroutine = null;
     }
 
     void Die()

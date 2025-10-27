@@ -250,10 +250,10 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.35
-  m_Height: 0.9
+  m_Radius: 0.47
+  m_Height: 1.27
   m_Direction: 1
-  m_Center: {x: -0.05, y: 0.44, z: 0}
+  m_Center: {x: -0.05, y: 0.58, z: 0}
 --- !u!54 &6472674197691392299
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -303,6 +303,7 @@ MonoBehaviour:
   firePoint: {fileID: 8240967186303180834}
   maxHP: 15
   currentHP: 0
+  experienceValue: 5
   hpSlider: {fileID: 5634150610370197971}
 --- !u!1 &6706941112368896912
 GameObject:
