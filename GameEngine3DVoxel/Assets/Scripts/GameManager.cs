@@ -58,7 +58,7 @@ public class GameManager : MonoBehaviour
     }
 
     // 🔻 [추가] 플레이어 초기 능력치 저장 함수
-    void InitializePlayerStats()
+    public void InitializePlayerStats()
     {
         // 현재 Inspector에 설정된 값을 초기값으로 저장
         initialPlayerMaxHP = playerMaxHP;
@@ -95,7 +95,7 @@ public class GameManager : MonoBehaviour
         else { Debug.LogWarning("LevelDisplay object not found in the loaded scene!"); }
     }
 
-    void CalculateCurrentCollapseDelay()
+    public void CalculateCurrentCollapseDelay()
     {
         currentCollapseDelay = baseCollapseDelay - (currentLevel - 1) * delayReductionPerLevel;
         if (currentCollapseDelay < minCollapseDelay) currentCollapseDelay = minCollapseDelay;
