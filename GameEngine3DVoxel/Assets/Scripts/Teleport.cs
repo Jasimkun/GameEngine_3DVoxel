@@ -46,6 +46,7 @@ public class Teleport : MonoBehaviour, IDamageable
     private Renderer enemyRenderer;
     private Color originalColor;
     private Rigidbody enemyRigidbody;
+    private Coroutine blinkCoroutine;
 
 
     void Start()
@@ -227,6 +228,10 @@ public class Teleport : MonoBehaviour, IDamageable
     {
         if (currentHP <= 0) return;
 
+        // 👈 2. 피격 시 코루틴 호출
+        if (blinkCoroutine != null) StopCoroutine(blinkCoroutine);
+        blinkCoroutine = StartCoroutine(BlinkEffect());
+
         currentHP -= damage;
 
         if (hpSlider != null)
@@ -236,12 +241,32 @@ public class Teleport : MonoBehaviour, IDamageable
 
         if (currentHP <= 0)
         {
+            // ... (이하 Die 호출 로직 동일) ...
             if (EnemyManager.Instance != null)
             {
                 EnemyManager.Instance.EnemyDefeated(experienceValue);
             }
             Die();
         }
+    }
+
+    private IEnumerator BlinkEffect()
+    {
+        if (enemyRenderer == null) yield break; // 렌더러가 없으면 중지
+
+        float blinkDuration = 0.1f; // 빨간색으로 유지되는 시간
+
+        // 빨간색으로 변경
+        enemyRenderer.material.color = Color.red;
+
+        // 짧은 대기
+        yield return new WaitForSeconds(blinkDuration);
+
+        // 원래 색상으로 복구
+        enemyRenderer.material.color = originalColor;
+
+        // 코루틴 참조 제거
+        blinkCoroutine = null;
     }
 
     void Die()

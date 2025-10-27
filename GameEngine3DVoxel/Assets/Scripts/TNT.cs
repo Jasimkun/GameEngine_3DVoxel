@@ -33,6 +33,8 @@ public class TNT : MonoBehaviour, IDamageable
     private Color originalColor;
     private Rigidbody enemyRigidbody;
 
+    private Coroutine blinkCoroutine;
+
 
     void Start()
     {
@@ -101,7 +103,12 @@ public class TNT : MonoBehaviour, IDamageable
     {
         if (currentHP <= 0) return; // 이미 죽었으면 리턴
 
-        currentHP -= damage;
+        // 👈 2. 피격 시 코루틴 호출 (이 3줄을 추가하세요)
+        if (blinkCoroutine != null) StopCoroutine(blinkCoroutine);
+        blinkCoroutine = StartCoroutine(BlinkEffect());
+
+        // --- 기존 코드 (이하 동일) ---
+        currentHP -= damage;
 
         // HP 슬라이더 업데이트
         if (hpSlider != null)
@@ -118,6 +125,26 @@ public class TNT : MonoBehaviour, IDamageable
             }
             Die(); // Die 함수 호출
         }
+    }
+
+    private IEnumerator BlinkEffect()
+    {
+        // Start()에서 찾은 렌더러와 원본 색상을 사용합니다.
+        if (enemyRenderer == null) yield break;
+
+        float blinkDuration = 0.1f;
+
+        // 빨간색으로 변경
+        enemyRenderer.material.color = Color.red;
+
+        // 0.1초 대기
+        yield return new WaitForSeconds(blinkDuration);
+
+        // 원래 색상(originalColor)으로 복구
+        enemyRenderer.material.color = originalColor;
+
+        // 코루틴 참조 제거
+        blinkCoroutine = null;
     }
 
     void Die()

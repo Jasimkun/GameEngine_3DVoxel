@@ -72,6 +72,10 @@ public class PlayerController : MonoBehaviour
     private Vector3 initialSpawnPosition; // 📢 <<< 게임 시작 시점의 스폰 위치
     private Animator anim; // 애니메이터
 
+    private Renderer playerRenderer;
+    private Color originalPlayerColor;
+    private Coroutine blinkCoroutine;
+
 
     void Start()
     {
@@ -112,6 +116,16 @@ public class PlayerController : MonoBehaviour
         // 초기 커서 상태 설정
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        playerRenderer = GetComponentInChildren<Renderer>(true);
+        if (playerRenderer != null)
+        {
+            originalPlayerColor = playerRenderer.material.color;
+        }
+        else
+        {
+            Debug.LogWarning("Player Renderer를 찾을 수 없습니다 (깜빡임 효과용)", this.gameObject);
+        }
     }
 
     void Update()
@@ -228,6 +242,10 @@ public class PlayerController : MonoBehaviour
     {
         if (currentHP <= 0 || (respawnPanel != null && respawnPanel.activeSelf)) return;
 
+        // 🔻 3. 피격 시 코루틴 호출 🔻
+        if (blinkCoroutine != null) StopCoroutine(blinkCoroutine);
+        blinkCoroutine = StartCoroutine(BlinkEffect());
+
         currentHP -= damage;
         if (hpSlider != null) hpSlider.value = currentHP; // null 체크 후 값 설정
 
@@ -235,6 +253,20 @@ public class PlayerController : MonoBehaviour
         {
             Die();
         }
+    }
+
+    // 🔻 4. 깜빡임 코루틴 추가 🔻
+    private IEnumerator BlinkEffect()
+    {
+        if (playerRenderer == null) yield break;
+
+        float blinkDuration = 0.1f;
+
+        playerRenderer.material.color = Color.red;
+        yield return new WaitForSeconds(blinkDuration);
+        playerRenderer.material.color = originalPlayerColor;
+
+        blinkCoroutine = null;
     }
 
     void Die()
