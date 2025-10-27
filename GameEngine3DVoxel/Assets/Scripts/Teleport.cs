@@ -72,7 +72,7 @@ public class Teleport : MonoBehaviour, IDamageable
         // Rigidbody 설정
         enemyRigidbody = GetComponent<Rigidbody>();
         if (enemyRigidbody == null) { enemyRigidbody = gameObject.AddComponent<Rigidbody>(); }
-        enemyRigidbody.isKinematic = false;
+        enemyRigidbody.isKinematic = true;
         enemyRigidbody.useGravity = false;
         enemyRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
 
@@ -104,7 +104,8 @@ public class Teleport : MonoBehaviour, IDamageable
             case EnemyState.Attack:
                 TryFallCheck();
                 if (dist > attackRange) state = EnemyState.Trace;
-                else { TracePlayer(); AttackPlayer(); }
+                else { //TracePlayer();
+                       AttackPlayer(); }
                 break;
             case EnemyState.Teleporting: break;
         }
@@ -114,10 +115,20 @@ public class Teleport : MonoBehaviour, IDamageable
     {
         while (true)
         {
-            yield return new WaitForSeconds(teleportCooldown);
-            if (player != null && state != EnemyState.Teleporting && currentHP > 0)
+            // 1. 쿨타임만큼 대기
+            yield return new WaitForSeconds(teleportCooldown);
+
+            // 2. 기본 조건 확인 (플레이어 존재, 순간이동 중 아님, 살아있음)
+            if (player != null && state != EnemyState.Teleporting && currentHP > 0)
             {
-                TeleportToPlayerSide();
+                // 3. ⭐️ 거리 확인 (새로 추가된 부분) ⭐️
+                float dist = Vector3.Distance(player.position, transform.position);
+
+                // 4. 거리가 traceRange(추적 범위)보다 멀 때만 순간이동 실행
+                if (dist > traceRange)
+                {
+                    TeleportToPlayerSide();
+                }
             }
         }
     }
@@ -162,6 +173,7 @@ public class Teleport : MonoBehaviour, IDamageable
 
     void Fall()
     {
+        enemyRigidbody.isKinematic = false;
         enemyRigidbody.constraints = RigidbodyConstraints.FreezeRotation;
         enemyRigidbody.useGravity = true;
         state = EnemyState.Idle;
@@ -191,6 +203,13 @@ public class Teleport : MonoBehaviour, IDamageable
 
     void SnapToGround()
     {
+        if (!enemyRigidbody.isKinematic)
+        {
+            enemyRigidbody.isKinematic = true;
+            enemyRigidbody.useGravity = false;
+            enemyRigidbody.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+        }
+
         RaycastHit hit;
         if (Physics.Raycast(transform.position + Vector3.up * 0.1f, Vector3.down, out hit, groundCheckDistance))
         {
